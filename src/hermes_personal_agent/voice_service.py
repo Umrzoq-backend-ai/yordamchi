@@ -62,6 +62,42 @@ def live_config(owner=True):
     instruction = build_prompt() + '\n' + personal_context()
     declarations = [
         types.FunctionDeclaration(
+            name="play_youtube",
+            behavior="NON_BLOCKING",
+            description="YouTube orqali musiqa, qo'shiq yoki videoni qidirish va kompyuter brauzerida darhol ochib ijro etish.",
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Qo'shiq nomi, ijrochi yoki video nomi"}
+                },
+                "required": ["query"]
+            }
+        ),
+        types.FunctionDeclaration(
+            name="open_app",
+            behavior="NON_BLOCKING",
+            description="Kompyuterda ilovalarni ochish (VS Code, Chrome, Telegram, Terminal va boshqalar).",
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "app_name": {"type": "string", "description": "Dastur nomi (chrome, code, telegram, terminal)"}
+                },
+                "required": ["app_name"]
+            }
+        ),
+        types.FunctionDeclaration(
+            name="set_volume",
+            behavior="NON_BLOCKING",
+            description="Kompyuter tizim ovozini sozlash (0 dan 100 gacha foiz).",
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "level": {"type": "integer", "description": "Ovoz darajasi foizda (0-100)"}
+                },
+                "required": ["level"]
+            }
+        ),
+        types.FunctionDeclaration(
             name="google_search",
             behavior="NON_BLOCKING",
             description="Internetdan ob-havo, valyuta kursi, yangiliklar, faktlar yoki istalgan ma'lumotni Google orqali qidirish.",
@@ -133,10 +169,14 @@ def live_config(owner=True):
             "Foydalanuvchi 'Ekranimni ko‘ryapsanmi?', 'Ekranga qara', 'Bu nima?', 'Koddagi xatoni top' yoki ekranda nimalar borligini so‘rasa:\n"
             "HECH QACHON 'Men faqat ovozda gaplashaman, ekranni ko‘rmayman' dema! Sen ekranni to‘liq ko‘rib turibsan!\n"
             "Darhol ekranda aynan nimalar ko‘rinayotganini (ochiq dasturlar, veb sahifalar, xabarlar yoki kodlar) ayting va batafsil tahlil qiling.")
-        instruction += ("\nKOMPYUTER VA DESKTOP BOSHQARUVI:\n"
-            "Foydalanuvchi YouTubeda musiqa/video qo‘yishni, kompyuterda dasturlarni ochishni (Chrome, VS Code, Telegram, Terminal), "
-            "tizim ovozini sozlashni yoki GitHubni tekshirishni so‘rasa, buni hermes_task funksiyasi orqali bajaring. "
-            "Avval 'Xo‘p, hozir bajaraman!' deb ovozda ayting, so‘ng funksiyani chaqiring.")
+        instruction += ("\nKOMPYUTER, ILOVALAR VA YOUTUBE BOSHQARUVI:\n"
+            "Sizda kompyuterni bevosita boshqarish uchun maxsus 'play_youtube', 'open_app', 'set_volume' vositalari mavjud!\n"
+            "Foydalanuvchi biror qo‘shiq, musiqa, ashula yoki video qo‘yishni so‘rasa (masalan: 'Youtubeda falon qo‘shiqni qo‘y', 'Musiqa qo‘yib ber'):\n"
+            "1. HECH QACHON 'men sun'iy intellektman, qo‘ya olmayman' dema!\n"
+            "2. HECH QACHON 'chatga havolasini yubordim' deb gapni aylantirma!\n"
+            "3. Darhol 'play_youtube' vositasini chaqir!\n"
+            "4. Ovozda samimiy qilib: 'Hozir YouTubeda qo‘yaman, marhamat tinglang!' deb o‘zbekcha javob ber.\n"
+            "Dasturlarni ochish uchun 'open_app', ovozni sozlash uchun esa 'set_volume' funksiyasini chaqir.\n")
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"], system_instruction=instruction +
             "\nCurrent time ("+CONFIG['timezone']+"): " + now().isoformat(),
@@ -384,6 +424,30 @@ class CallBridge:
                 response = {'delivered': False, 'error': type(exc).__name__}
             await self.session.send_tool_response(function_responses=[types.FunctionResponse(
                 id=call.id, name=call.name, response=response)])
+            return
+        if call.name == "play_youtube":
+            query = str((call.args or {}).get("query", "")).strip()
+            from .desktop_controller import play_youtube
+            res = await asyncio.to_thread(play_youtube, query)
+            if not self.stopped.is_set():
+                await self.session.send_tool_response(function_responses=[types.FunctionResponse(
+                    id=call.id, name=call.name, response={"result": res, "scheduling": "WHEN_IDLE"})])
+            return
+        if call.name == "open_app":
+            app_name = str((call.args or {}).get("app_name", "")).strip()
+            from .desktop_controller import open_app
+            res = await asyncio.to_thread(open_app, app_name)
+            if not self.stopped.is_set():
+                await self.session.send_tool_response(function_responses=[types.FunctionResponse(
+                    id=call.id, name=call.name, response={"result": res, "scheduling": "WHEN_IDLE"})])
+            return
+        if call.name == "set_volume":
+            level = int((call.args or {}).get("level", 50))
+            from .desktop_controller import set_volume
+            res = await asyncio.to_thread(set_volume, level)
+            if not self.stopped.is_set():
+                await self.session.send_tool_response(function_responses=[types.FunctionResponse(
+                    id=call.id, name=call.name, response={"result": res, "scheduling": "WHEN_IDLE"})])
             return
         if call.name == "google_search":
             query = str((call.args or {}).get("query", "")).strip()

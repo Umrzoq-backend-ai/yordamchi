@@ -10,6 +10,7 @@ import uuid
 import webbrowser
 from pathlib import Path
 from urllib.parse import unquote
+import re
 from aiohttp import web
 from .voice_common import CONFIG, HERMES, STATE
 from .knowledge import Knowledge
@@ -162,6 +163,15 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
                 save_config({'voice': parts[1].capitalize(), 'tts_voice': parts[1].capitalize()})
                 return web.json_response({'text': f"Ovoz '{parts[1]}' ga sozlandi."})
             return web.json_response({'text': f"Hozirgi ovoz: {CONFIG.get('voice', 'Kore')}. Tanlash uchun: /voice aoede, /voice kore, /voice rasalgethi"})
+        lower_raw = raw.lower()
+        if any(w in lower_raw for w in ["youtube", "youtubeda", "qo'shiq", "ashula", "musiqa", "qo‘shiq"]) and any(w in lower_raw for w in ["qo'y", "qo‘y", "och", "ijro", "eshit"]):
+            clean_q = raw
+            for stop in ["youtubeda", "youtube", "qo'shiqni", "qo‘shiqni", "musiqani", "ashulani", "qo'shiq", "qo‘shiq", "musiqa", "ashula", "qo'yib ber", "qo‘yib ber", "qo'y", "qo‘y", "eshitmoqchiman", "ijro et"]:
+                clean_q = re.sub(r'(?i)' + re.escape(stop), '', clean_q)
+            clean_q = clean_q.strip(" :,-_") or raw
+            from .desktop_controller import play_youtube
+            res = await asyncio.to_thread(play_youtube, clean_q)
+            return web.json_response({'text': f"🎵 YouTubeda '{clean_q}' ochildi va kompyuteringizda ijro etilmoqda!"})
         if busy.locked(): return web.json_response({'error':'Bitta vazifa bajarilmoqda. Natijani kuting.'},status=409)
         async with busy:
             result=await runner(raw, image=image)
