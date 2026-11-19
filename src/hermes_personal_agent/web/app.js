@@ -2,7 +2,9 @@
 const $=s=>document.querySelector(s);
 const tokenFromURL=new URLSearchParams(location.hash.slice(1)).get('token');
 if(tokenFromURL){sessionStorage.setItem('hpa-token',tokenFromURL);localStorage.setItem('hpa-token',tokenFromURL);history.replaceState(null,'',location.pathname+location.search)}
-const token=sessionStorage.getItem('hpa-token')||localStorage.getItem('hpa-token')||'';
+const cookieMatch=document.cookie.match(/(?:^|; )hpa-token=([^;]+)/);
+const token=sessionStorage.getItem('hpa-token')||localStorage.getItem('hpa-token')||(cookieMatch?decodeURIComponent(cookieMatch[1]):'')||'';
+if(token){sessionStorage.setItem('hpa-token',token);localStorage.setItem('hpa-token',token)}
 let busy=false,initialized=false,voiceActive=false,currentTab='chat',snapshot=null,recognition=null;
 const welcomeTemplate=$('#welcome').cloneNode(true);
 function notice(message,error=false){const n=$('#notice');n.textContent=message;n.classList.toggle('error',error);n.hidden=false}

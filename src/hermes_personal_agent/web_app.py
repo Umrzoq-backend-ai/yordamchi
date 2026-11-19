@@ -55,7 +55,12 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             raise web.HTTPForbidden(text='Origin ruxsat etilmagan')
         if request.path.startswith('/api/'):
             supplied = request.headers.get('Authorization', '')
-            if not hmac.compare_digest(supplied, 'Bearer ' + token):
+            cookie_tok = request.cookies.get('hpa-token', '')
+            valid = (
+                (supplied and hmac.compare_digest(supplied, 'Bearer ' + token)) or
+                (cookie_tok and hmac.compare_digest(cookie_tok, token))
+            )
+            if not valid:
                 return web.json_response({'error':'Kirish havolasi kerak. hpa web buyrug‘ini qayta oching.'}, status=401)
         try:
             response = await handler(request)
@@ -74,7 +79,10 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
     app = web.Application(middlewares=[guard], client_max_size=MAX_UPLOAD+65536)
     app[TOKEN_KEY] = token
 
-    async def index(request): return web.FileResponse(ASSETS/'index.html')
+    async def index(request):
+        resp = web.FileResponse(ASSETS / 'index.html')
+        resp.set_cookie('hpa-token', token, path='/', samesite='Strict')
+        return resp
     async def asset(request):
         if request.match_info['name'] not in {'app.css','app.js','dashboard.js','wizard.js','display.ttf'}: raise web.HTTPNotFound()
         return web.FileResponse(ASSETS/request.match_info['name'])
