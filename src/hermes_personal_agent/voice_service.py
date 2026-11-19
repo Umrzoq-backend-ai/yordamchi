@@ -60,7 +60,20 @@ Never disclose credentials. Never claim completion without the actual result. Wh
 """
 def live_config(owner=True):
     instruction = build_prompt() + '\n' + personal_context()
-    declarations = [types.FunctionDeclaration(name="end_call", description="Shu qo'ng'iroqni tugatish.",
+    declarations = [
+        types.FunctionDeclaration(
+            name="google_search",
+            behavior="NON_BLOCKING",
+            description="Internetdan ob-havo, valyuta kursi, yangiliklar, faktlar yoki istalgan ma'lumotni Google orqali qidirish.",
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Qidiruv so'rovi"}
+                },
+                "required": ["query"]
+            }
+        ),
+        types.FunctionDeclaration(name="end_call", description="Shu qo'ng'iroqni tugatish.",
                 parameters_json_schema={"type": "object", "properties": {}})]
     if owner:
         declarations.insert(0, types.FunctionDeclaration(name="hermes_task", behavior="NON_BLOCKING",
@@ -85,6 +98,9 @@ def live_config(owner=True):
             "Do not disclose private information or credentials. Do not promise actions you cannot perform. "
             "Ask clarifying questions about the owner's stated purpose and end politely when done.")
     if str(CONFIG['language']).lower().startswith('uz'):
+        instruction += ("\nTIL QOIDASI:\n"
+            "Foydalanuvchi qanday gapirsa ham yoki so'zlar qanday eshitilsa ham, HECH QACHON 'Men faqat o'zbek tilida gapiraman' yoki 'o'zbek tilida davom eta olaman' degan gaplarni aytma! "
+            "Foydalanuvchi o'zbek tilida gapirmoqda. Barcha shevalar va og'zaki so'zlarni erkin tushun va suhbatni o'zbekcha tabiiy davom ettir.\n")
         instruction += ("\nSuhbatning asosiy tili — o‘zbek tili. O‘zbekcha og‘zaki nutq, sheva va kundalik "
             "qisqartmalarni kontekst bilan tushun. Ruscha yoki inglizcha atama ishlatilsa, butun suhbat tilini "
             "o‘zgartirma. Javoblarni tabiiy o‘zbek tilida ber. Ismlar, Telegram username, raqam yoki topshiriq "
@@ -365,6 +381,13 @@ class CallBridge:
             await self.session.send_tool_response(function_responses=[types.FunctionResponse(
                 id=call.id, name=call.name, response=response)])
             return
+        if call.name == "google_search":
+            query = str((call.args or {}).get("query", "")).strip()
+            search_res = await self.perform_google_search(query)
+            if not self.stopped.is_set():
+                await self.session.send_tool_response(function_responses=[types.FunctionResponse(
+                    id=call.id, name=call.name, response={"result": search_res, "scheduling": "WHEN_IDLE"})])
+            return
         if call.name != "hermes_task":
             return
         if not self.is_owner:
@@ -426,6 +449,28 @@ class CallBridge:
         self.tool_tasks.discard(task)
         if not task.cancelled() and task.exception():
             LOG.error("Hermes task response failed: %s", type(task.exception()).__name__)
+
+    async def perform_google_search(self, query):
+        if not query:
+            return "Qidiruv so'rovi bo'sh."
+        try:
+            from google import genai
+            from google.genai import types
+            from dotenv import dotenv_values
+            env_path = APP_HOME / '.env'
+            key = dotenv_values(env_path).get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY')
+            client = genai.Client(api_key=key)
+            resp = await client.aio.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=f"Quyidagi savolga internetdan eng so'nggi ma'lumotlarni qidirib, o'zbek tilida juda qisqa va aniq (1-2 gapda) javob ber:\n{query}",
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search={})]
+                )
+            )
+            return resp.text or "Ma'lumot topilmadi."
+        except Exception as exc:
+            LOG.error("Google grounding search error: %s", exc)
+            return f"Qidiruvda xatolik: {type(exc).__name__}"
 
     async def run(self):
         workers = []
