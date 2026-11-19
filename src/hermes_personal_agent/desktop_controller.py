@@ -2,6 +2,9 @@
 """Safe desktop application, media and OS automation for Yordamchi personal agent."""
 import subprocess
 import urllib.parse
+import urllib.request
+import re
+import os
 import shutil
 import logging
 from typing import Dict, Any
@@ -21,15 +24,39 @@ def open_url(url: str) -> Dict[str, Any]:
         return {"ok": False, "error": str(exc)}
 
 def play_youtube(query: str) -> Dict[str, Any]:
-    """Search and play a video or music track on YouTube."""
+    """Search and play a video or music track on YouTube directly."""
     try:
         query = query.strip()
         if not query:
             return {"ok": False, "error": "Qidiruv so‘zi bo‘sh bo‘lishi mumkin emas."}
         encoded = urllib.parse.quote_plus(query)
-        url = f"https://www.youtube.com/results?search_query={encoded}"
-        subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return {"ok": True, "message": f"YouTube'da '{query}' qidiruvi ochildi va ijroga tayyorlandi: {url}"}
+        search_url = f"https://www.youtube.com/results?search_query={encoded}"
+        video_url = search_url
+        try:
+            req = urllib.request.Request(
+                search_url,
+                headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+            )
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                html = resp.read().decode("utf-8", errors="ignore")
+            video_ids = re.findall(r"/watch\?v=([a-zA-Z0-9_-]{11})", html)
+            if video_ids:
+                video_url = f"https://www.youtube.com/watch?v={video_ids[0]}"
+        except Exception as search_err:
+            LOG.warning("Direct video extraction fallback to search url: %s", search_err)
+
+        env = os.environ.copy()
+        if "DISPLAY" not in env:
+            env["DISPLAY"] = ":0"
+        if "WAYLAND_DISPLAY" not in env:
+            env["WAYLAND_DISPLAY"] = "wayland-0"
+
+        subprocess.Popen(["xdg-open", video_url], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {
+            "ok": True,
+            "url": video_url,
+            "message": f"YouTube'da '{query}' qo‘shig‘i ochildi va ijro etilmoqda: {video_url}"
+        }
     except Exception as exc:
         LOG.error("play_youtube failed: %s", exc)
         return {"ok": False, "error": str(exc)}

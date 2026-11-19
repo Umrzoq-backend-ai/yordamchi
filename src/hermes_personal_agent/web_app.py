@@ -171,7 +171,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             clean_q = clean_q.strip(" :,-_") or raw
             from .desktop_controller import play_youtube
             res = await asyncio.to_thread(play_youtube, clean_q)
-            return web.json_response({'text': f"🎵 YouTubeda '{clean_q}' ochildi va kompyuteringizda ijro etilmoqda!"})
+            return web.json_response({'text': f"🎵 YouTubeda '{clean_q}' qo‘shig‘i ochildi va kompyuteringizda ijro etilmoqda!\nHavola: {res.get('url')}"})
         if busy.locked(): return web.json_response({'error':'Bitta vazifa bajarilmoqda. Natijani kuting.'},status=409)
         async with busy:
             result=await runner(raw, image=image)
