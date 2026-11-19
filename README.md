@@ -16,9 +16,30 @@ Yordamchi har kim o‘z kompyuteriga, o‘z hisoblari bilan o‘rnatadigan assis
 
 Rasmlardagi vazifa va xabarlar — sun’iy dars misollari, haqiqiy shaxsiy yozishmalar emas.
 
+
+## 🎙️ Ovozli jonli muloqot (Real-time Speech-to-Speech)
+
+Yordamchi eski robot ovozlar (TTS) kabi emas, balki **Google Gemini 3.8 Multimodal Live** neyrotarmog‘i orqali to‘g‘ridan-to‘g‘ri ovozdan-ovozga (Speech-to-Speech) rejimida ishlaydi. U insoniy emotsiyalar (kulish, hayratlanish, samimiy ohang) bilan gapiradi.
+
+* **Qo‘llab-quvvatlanadigan ovozlar:**
+  * **`Aoede`** — Juda mayin, samimiy va emotsional qiz bola ovozi.
+  * **`Kore`** — Quvnoq, shaddod va dinamik qiz bola ovozi.
+  * **`Rasalgethi`** — Bosiq va professional yigit kishi ovozi.
+
+### 📱 Telegram buyruqlari
+
+Telegram orqali agent bilan muloqot qilish uchun qulay tezkor buyruqlar:
+* `/voice aoede` — Ovozni `Aoede` (mayin qiz bola)ga o‘zgartirish.
+* `/voice kore` — Ovozni `Kore` (quvnoq qiz bola)ga o‘zgartirish.
+* `/voice rasalgethi` — Ovozni `Rasalgethi` (yigit kishi)ga qaytarish.
+* `/call` — Telegram orqali jonli ovozli qo‘ng‘iroq boshlash.
+* `/hangup` — Faol qo‘ng‘iroqni tugatish.
+* `/status` — Agent, xotira, modellar va fon xizmati holatini tekshirish.
+* `/pause` / `/resume` — Avtomatik rejalashtirilgan vazifalarni to‘xtatish yoki davom ettirish.
+
 ## Birinchi marta o‘rnatish
 
-1. [**ZIPni yuklab oling**](https://github.com/xamidjonovk/yordamchi/archive/refs/heads/main.zip).
+1. [**ZIPni yuklab oling**](https://github.com/Umrzoq-backend-ai/yordamchi/archive/refs/heads/main.zip).
 2. ZIPni **to‘liq oching** va `yordamchi-main` papkasiga kiring.
 3. **Windows:** `install.cmd`ni ikki marta bosing. **macOS/Linux:** shu papkada terminaldan `bash scripts/install.sh`ni bajaring.
 4. O‘rnatish tugashini kuting. **Brauzerda sozlash ustasi avtomatik ochiladi.** Oynani yopmang; birinchi o‘rnatish yuklash tezligiga qarab bir necha daqiqa yoki ko‘proq vaqt olishi mumkin.
@@ -27,7 +48,7 @@ Rasmlardagi vazifa va xabarlar — sun’iy dars misollari, haqiqiy shaxsiy yozi
 Git bilan olishni xohlasangiz:
 
 ```bash
-git clone https://github.com/xamidjonovk/yordamchi.git
+git clone https://github.com/Umrzoq-backend-ai/yordamchi.git
 cd yordamchi
 ```
 
@@ -280,5 +301,13 @@ Buyruq ko‘rib chiqilgan fayllardan yangi repo va shaxsiy Git muallif ma’lumo
 [90 daqiqalik dars](docs/dars-rejasi.md) · [Shaxsiylashtirish mashqlari](docs/shaxsiylashtirish.md) · [Tekshiruv holati](docs/validation.md)
 
 ---
+
+
+## 👤 Muallif & Dasturchi
+
+* **Dasturchi:** Umrzoq Yulchiyev
+* **Telegram:** [@umrzoq_21](https://t.me/umrzoq_21)
+* **GitHub:** [@Umrzoq-backend-ai](https://github.com/Umrzoq-backend-ai)
+* **Email:** school21dev@gmail.com
 
 MIT litsenziyasi. Har bir ishtirokchi o‘z hisobi, kaliti, ma’lumoti va provayder xarajatlarini o‘zi boshqaradi.

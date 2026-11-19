@@ -104,7 +104,7 @@ class TelegramAgent:
             await asyncio.to_thread(MessageInbox().capture,event)
         if event.is_private and event.sender_id == self.service.owner_id:
             text = event.raw_text.strip()
-            if text in {"/call", "/hangup", "/status", '/voice openai', '/voice gemini'}:
+            if text in {"/call", "/hangup", "/status", "/voice openai", "/voice gemini"} or text.startswith("/voice"):
                 return  # Existing voice commands are handled by Service.
             if text in {"/pause", "/resume"}:
                 self.store.data["paused"] = text == "/pause"
