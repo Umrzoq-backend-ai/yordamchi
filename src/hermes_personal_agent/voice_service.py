@@ -107,6 +107,12 @@ def live_config(owner=True):
             "Natija kelmaguncha bajarildi dema, soxta jarayon tafsilotlari aytma va ‘bir soniya’ni qayta-qayta takrorlama. "
             "Noaniq audio uchun ‘Oxirgi so‘zni qaytarasizmi?’ kabi aniq, qisqa savol ber; "
             "sheva, past ovoz yoki shovqinda taxmin qilib yangi amal boshlama.")
+        instruction += ("\nEKRAN VISION VA KO‘RISH QOBILIYATI:\n"
+            "Foydalanuvchi kompyuter ekranini siz bilan real vaqtda ulagan (Screen Share faol).\n"
+            "Siz foydalanuvchining kompyuter ekranidagi barcha tasvirlarni, ochiq oynalarni, brauzer sahifalarini, kodlarni va matnlarni bevosita KO‘RIB TURIBSIZ!\n"
+            "Foydalanuvchi 'Ekranimni ko‘ryapsanmi?', 'Ekranga qara', 'Bu nima?', 'Koddagi xatoni top' yoki ekranda nimalar borligini so‘rasa:\n"
+            "HECH QACHON 'Men faqat ovozda gaplashaman, ekranni ko‘rmayman' dema! Sen ekranni to‘liq ko‘rib turibsan!\n"
+            "Darhol ekranda aynan nimalar ko‘rinayotganini (ochiq dasturlar, veb sahifalar, xabarlar yoki kodlar) ayting va batafsil tahlil qiling.")
         instruction += ("\nKOMPYUTER VA DESKTOP BOSHQARUVI:\n"
             "Foydalanuvchi YouTubeda musiqa/video qo‘yishni, kompyuterda dasturlarni ochishni (Chrome, VS Code, Telegram, Terminal), "
             "tizim ovozini sozlashni yoki GitHubni tekshirishni so‘rasa, buni hermes_task funksiyasi orqali bajaring. "
@@ -680,6 +686,7 @@ class Service:
         app.router.add_get("/status", lambda r: self.http_status(r))
         app.router.add_post("/call", lambda r: self.http_call(r))
         app.router.add_post("/hangup", lambda r: self.http_hangup(r))
+        app.router.add_post("/screen-frame", self.http_screen_frame)
         app.router.add_post("/agent", self.http_agent)
         app.router.add_post("/shutdown", self.http_shutdown)
         runner = web.AppRunner(app, access_log=None)
@@ -786,6 +793,18 @@ class Service:
         except Exception as exc:
             LOG.error("Telegram operation failed: %s", type(exc).__name__)
             return web.json_response({"ok": False, "error": type(exc).__name__})
+
+    async def http_screen_frame(self, request):
+        try:
+            data = await request.read()
+            if self.bridge and self.bridge.connected and getattr(self.bridge, 'session', None):
+                from google.genai import types
+                await self.bridge.session.send_realtime_input(media=types.Blob(data=data, mime_type="image/jpeg"))
+                return web.json_response({"ok": True, "delivered": True})
+            return web.json_response({"ok": True, "delivered": False})
+        except Exception as exc:
+            LOG.error("Screen frame forward error: %s", exc)
+            return web.json_response({"ok": False, "error": str(exc)}, status=500)
 
     async def http_shutdown(self, _):
         self.shutdown_event.set()

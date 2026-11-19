@@ -261,6 +261,24 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):await task
         await wizard.close()
+    async def screen_frame(request):
+        try:
+            body_data = await request.read()
+            token = (STATE / "control-token").read_text(encoding="utf-8").strip()
+            port = CONFIG["control_port"]
+            import urllib.request
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{port}/screen-frame",
+                data=body_data,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "image/jpeg"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
+                res_data = json.loads(resp.read().decode("utf-8"))
+                return web.json_response(res_data)
+        except Exception as exc:
+            return web.json_response({"ok": False, "error": str(exc)}, status=500)
+
     app.cleanup_ctx.append(wizard_lifetime)
 
     app.add_routes([web.get('/',index),web.get('/assets/{name}',asset),web.get('/api/status',status),
@@ -268,7 +286,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         web.post('/api/note',note),web.post('/api/upload',upload),web.post('/api/forget',forget),
         web.post('/api/chat',chat),web.post('/api/reset',reset),web.post('/api/learning',learn),
         web.post('/api/service/{action}',lifecycle),web.post('/api/setup/{action}',setup_action),
-        web.get('/api/dashboard',dashboard),web.post('/api/jobs',jobs),web.post('/api/inbox',inbox)])
+        web.get('/api/dashboard',dashboard),web.post('/api/jobs',jobs),web.post('/api/inbox',inbox),web.post('/api/screen-frame',screen_frame)])
     return app
 
 def main(argv=None):

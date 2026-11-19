@@ -18,13 +18,46 @@ function appendMessage(role,text){$('#welcome')?.remove();const item=document.cr
 function setBusy(value){busy=value;$('#send').disabled=value;$('#reset').disabled=value;$('#chat-state').textContent=value?'Javob tayyorlanmoqda…':'Tayyor';$('#orb-status').textContent=value?'Vazifa bajarilmoqda':'Muloqot markazi';$('#orb-label').textContent=value?'Fikringizni tushunyapman.':'Siz bilan birga.';$('#messages').setAttribute('aria-busy',String(value))}
 let screenStream = null;
 let screenVideo = null;
+let screenStreamInterval = null;
 const screenBtn = $('#screen-share');
 const screenText = $('#screen-share-text');
 const screenIndicator = $('#screen-indicator');
 
+function startScreenStreaming() {
+  if (screenStreamInterval) clearInterval(screenStreamInterval);
+  screenStreamInterval = setInterval(async () => {
+    if (!screenStream || !screenStream.active || !screenVideo || !screenVideo.videoWidth) return;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.min(screenVideo.videoWidth, 1024);
+      canvas.height = Math.min(screenVideo.videoHeight, 576);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        try {
+          await fetch('/api/screen-frame', {
+            method: 'POST',
+            headers: { 'Content-Type': 'image/jpeg' },
+            body: blob
+          });
+        } catch (_) {}
+      }, 'image/jpeg', 0.65);
+    } catch (_) {}
+  }, 1000);
+}
+
+function stopScreenStreaming() {
+  if (screenStreamInterval) {
+    clearInterval(screenStreamInterval);
+    screenStreamInterval = null;
+  }
+}
+
 if (screenBtn) {
   screenBtn.addEventListener('click', async () => {
     if (screenStream && screenStream.active) {
+      stopScreenStreaming();
       screenStream.getTracks().forEach(t => t.stop());
       screenStream = null;
       screenVideo = null;
@@ -40,11 +73,13 @@ if (screenBtn) {
       screenVideo.srcObject = screenStream;
       screenVideo.muted = true;
       await screenVideo.play();
+      startScreenStreaming();
       screenText.textContent = 'Ekranni to‘xtatish';
       screenBtn.classList.add('active');
       if (screenIndicator) screenIndicator.hidden = false;
       notice('🖥️ Ekran ulandi! Istalgan savol yozsangiz, Yordamchi ekranni ko‘rib javob beradi.');
       screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+        stopScreenStreaming();
         screenStream = null;
         screenVideo = null;
         screenText.textContent = 'Ekranni ulash';
