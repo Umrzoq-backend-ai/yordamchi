@@ -98,6 +98,10 @@ def live_config(owner=True):
             "Do not disclose private information or credentials. Do not promise actions you cannot perform. "
             "Ask clarifying questions about the owner's stated purpose and end politely when done.")
     if str(CONFIG['language']).lower().startswith('uz'):
+        instruction += ("\nMUROJAAT QOIDASI:\n"
+            "Foydalanuvchiga 'aka' qo‘shimchasi bilan murojaat qilma! "
+            "Unga shunchaki 'Umrzoq' deb (masalan: 'Salom, Umrzoq!', 'Qalaysiz, Umrzoq?', 'Xo‘p bo‘ladi, Umrzoq') do‘stona va samimiy murojaat qil. "
+            "Ismini aytganda 'Z' harfini aniq 'Umr-zoq' deb talaffuz qil, hech qachon 'Umroq' deb aytma!\n")
         instruction += ("\nTIL QOIDASI:\n"
             "Foydalanuvchi qanday gapirsa ham yoki so'zlar qanday eshitilsa ham, HECH QACHON 'Men faqat o'zbek tilida gapiraman' yoki 'o'zbek tilida davom eta olaman' degan gaplarni aytma! "
             "Foydalanuvchi o'zbek tilida gapirmoqda. Barcha shevalar va og'zaki so'zlarni erkin tushun va suhbatni o'zbekcha tabiiy davom ettir.\n")
