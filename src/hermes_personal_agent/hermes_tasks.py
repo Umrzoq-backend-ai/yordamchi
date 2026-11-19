@@ -66,6 +66,37 @@ def save_session(key,sid,old):
             key,sid,(old['turns']+1 if old else 1),old['started'] if old else timestamp()))
 
 
+async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner'):
+    import os
+    gemini_key = os.environ.get('GEMINI_API_KEY')
+    if not gemini_key:
+        return {'ok': False, 'error': 'Hermes provayderi cheklandi va GEMINI_API_KEY topilmadi.'}
+    try:
+        from google import genai
+        client = genai.Client(api_key=gemini_key)
+        kb = knowledge()
+        recall = await asyncio.to_thread(kb.context, task) if learn else ""
+        sys_prompt = (f"You are {CONFIG['owner_name']}'s personal Hermes AI agent (Yordamchi). Respond in {CONFIG['language']}.\n"
+                      f"{personal_context()}\n"
+                      f"Owner Telegram: @{CONFIG['owner_username']}. Dedicated account: @{CONFIG['agent_username']}.\n"
+                      f"Style preferences: {CONFIG.get('owner_style', '')}\n"
+                      f"Current time: {datetime.now(ZoneInfo(CONFIG['timezone'])).isoformat()}.\n"
+                      f"Retrieved context from memory:\n{recall}\n")
+        def _call():
+            return client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=task,
+                config={'system_instruction': sys_prompt}
+            )
+        response = await asyncio.to_thread(_call)
+        text = response.text.strip() if (response and response.text) else "Vazifa bajarildi."
+        if learn and text:
+            await asyncio.to_thread(kb.add_text, 'Agent response', text, kind='conversation', trust='assistant')
+        return {'ok': True, 'text': text}
+    except Exception as exc:
+        return {'ok': False, 'error': f'Gemini fallback failed: {str(exc)}'}
+
+
 def parse_result(stdout):
     decoder=json.JSONDecoder(); events=[]
     for line in stdout.decode('utf-8',errors='replace').splitlines():
@@ -148,9 +179,12 @@ async def _run_task(task,session_key,*,learn,source_trust):
         if isinstance(error,asyncio.CancelledError): raise
         return {'ok':False,'error':'Hermes timed out; the gateway task may still be running, so it was not replayed'}
     result=parse_result(stdout)
-    if not result:return {'ok':False,'error':f'Missing Hermes structured result (exit {process.returncode})'}
+    if not result:
+        return await fallback_gemini(task, session_key, learn=learn, source_trust=source_trust)
     if result.get('session_id'):await asyncio.to_thread(save_session,session_key,result['session_id'],old)
     output={'ok':process.returncode==0 and result.get('exit_code',0)==0,'text':result.get('text','')[:30000],'error':result.get('error','')[:1200]}
+    if not output['ok']:
+        return await fallback_gemini(task, session_key, learn=learn, source_trust=source_trust)
     if learn and output['text']:
         await asyncio.to_thread(knowledge().add_text,'Agent response',output['text'],kind='conversation',trust='assistant')
     return output

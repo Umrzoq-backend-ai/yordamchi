@@ -137,9 +137,29 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         if wizard.auth.get('phase')=='waiting':return web.json_response({'error':'Avval AI loginini tugating.'},status=409)
         data=await body(request); text=data.get('text','')
         if not isinstance(text,str) or not 1 <= len(text.strip()) <= 20000: raise ValueError()
+        raw = text.strip()
+        if raw == '/call':
+            from .voice_common import control
+            res = await asyncio.to_thread(control, 'call')
+            return web.json_response({'text': '📞 Ovozli qo‘ng‘iroq boshlanmoqda! Telegramingizga (@Zoltanma) qo‘ng‘iroq qilinmoqda...'})
+        if raw == '/hangup':
+            from .voice_common import control
+            res = await asyncio.to_thread(control, 'hangup')
+            return web.json_response({'text': '📴 Qo‘ng‘iroq yakunlandi.'})
+        if raw == '/status':
+            from .voice_common import control
+            st = await asyncio.to_thread(control, 'status')
+            return web.json_response({'text': f"Holat: Ovoz='{st.get('voice')}', Model='{st.get('model')}', Agent='@{st.get('agent')}', Qo‘ng‘iroq='{st.get('call')}'"})
+        if raw.startswith('/voice'):
+            parts = raw.split()
+            if len(parts) > 1:
+                from .voice_common import save_config
+                save_config({'voice': parts[1].capitalize(), 'tts_voice': parts[1].capitalize()})
+                return web.json_response({'text': f"Ovoz '{parts[1]}' ga sozlandi."})
+            return web.json_response({'text': f"Hozirgi ovoz: {CONFIG.get('voice', 'Kore')}. Tanlash uchun: /voice aoede, /voice kore, /voice rasalgethi"})
         if busy.locked(): return web.json_response({'error':'Bitta vazifa bajarilmoqda. Natijani kuting.'},status=409)
         async with busy:
-            result=await runner(text.strip())
+            result=await runner(raw)
         if not result.get('ok'):
             return web.json_response({'error':'AI javob bermadi. Hermes loginini va tanlangan modelni tekshiring. Vazifa holatini tekshirmasdan takrorlamang.'},status=503)
         return web.json_response({'text':str(result.get('text',''))[:30000]})
