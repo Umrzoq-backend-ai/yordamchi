@@ -279,6 +279,18 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         except Exception as exc:
             return web.json_response({"ok": False, "error": str(exc)}, status=500)
 
+    async def tts(request):
+        data = await body(request)
+        text = str(data.get('text', '')).strip()
+        if not text:
+            return web.json_response({'error': 'Matn bo‘sh'}, status=400)
+        from .voice_notes import synthesize
+        try:
+            audio_path = await synthesize(text[:1200])
+            return web.FileResponse(audio_path, headers={'Content-Type': 'audio/ogg'})
+        except Exception as exc:
+            return web.json_response({'error': str(exc)}, status=500)
+
     app.cleanup_ctx.append(wizard_lifetime)
 
     app.add_routes([web.get('/',index),web.get('/assets/{name}',asset),web.get('/api/status',status),
@@ -286,7 +298,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         web.post('/api/note',note),web.post('/api/upload',upload),web.post('/api/forget',forget),
         web.post('/api/chat',chat),web.post('/api/reset',reset),web.post('/api/learning',learn),
         web.post('/api/service/{action}',lifecycle),web.post('/api/setup/{action}',setup_action),
-        web.get('/api/dashboard',dashboard),web.post('/api/jobs',jobs),web.post('/api/inbox',inbox),web.post('/api/screen-frame',screen_frame)])
+        web.get('/api/dashboard',dashboard),web.post('/api/jobs',jobs),web.post('/api/inbox',inbox),web.post('/api/screen-frame',screen_frame),web.post('/api/tts',tts)])
     return app
 
 def main(argv=None):

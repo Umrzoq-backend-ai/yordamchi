@@ -1,3 +1,36 @@
+let currentAudio = null;
+async function playGeminiSpeech(text) {
+  if (!text) return;
+  try {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    const resp = await fetch('/api/tts', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text: text.slice(0, 1500) })
+    });
+    if (resp.ok) {
+      const blob = await resp.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      currentAudio = new Audio(audioUrl);
+      await currentAudio.play();
+      return;
+    }
+  } catch (err) {
+    console.warn('Gemini TTS error', err);
+  }
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'uz-UZ';
+    speechSynthesis.speak(utterance);
+  }
+}
 'use strict';
 const $=s=>document.querySelector(s);
 const tokenFromURL=new URLSearchParams(location.hash.slice(1)).get('token');
@@ -113,10 +146,10 @@ $('#chat-form').addEventListener('submit',async e=>{
         console.error('Frame capture error', err);
       }
     }
-    const result=await api('chat',payload);appendMessage('assistant',result.text||'Javob matni bo‘sh qaytdi.');if($('#speak').checked&&'speechSynthesis'in window){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(result.text);utterance.lang=({uz:'uz-UZ',en:'en-US',ru:'ru-RU'}[snapshot?.profile.language]||'uz-UZ');speechSynthesis.speak(utterance)}}catch(error){notice(error.message,true);appendMessage('assistant','Javob olinmadi. Ulanish va model sozlamalarini tekshiring.')}finally{setBusy(false);refresh()}});
+    const result=await api('chat',payload);appendMessage('assistant',result.text||'Javob matni bo‘sh qaytdi.');if($('#speak').checked&&result.text){playGeminiSpeech(result.text)}}catch(error){notice(error.message,true);appendMessage('assistant','Javob olinmadi. Ulanish va model sozlamalarini tekshiring.')}finally{setBusy(false);refresh()}});
 $('#message').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))$('#chat-form').requestSubmit()});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-prompt]');if(b){$('#message').value=b.dataset.prompt;$('#message').focus()}});
-$('#reset').addEventListener('click',async()=>{try{await api('reset',{});recognition?.abort();voiceActive=false;window.speechSynthesis?.cancel();$('#message').value='';$('#messages').replaceChildren(welcomeTemplate.cloneNode(true));$('#message').focus();notice('Yangi suhbat boshlandi. Bilimlaringiz saqlanadi.')}catch(error){notice(error.message,true)}});
+$('#reset').addEventListener('click',async()=>{try{await api('reset',{});recognition?.abort();voiceActive=false;window.speechSynthesis?.cancel();if(currentAudio){currentAudio.pause();currentAudio=null;}$('#message').value='';$('#messages').replaceChildren(welcomeTemplate.cloneNode(true));$('#message').focus();notice('Yangi suhbat boshlandi. Bilimlaringiz saqlanadi.')}catch(error){notice(error.message,true)}});
 async function withButton(button,operation){button.disabled=true;try{await operation()}catch(error){notice(error.message,true)}finally{button.disabled=false}}
 $('#profile-form').addEventListener('submit',e=>{e.preventDefault();withButton(e.submitter,async()=>{await api('profile',Object.fromEntries(new FormData(e.target)));notice('Profil saqlandi. Yangi suhbatlarda qo‘llanadi. Telegram ovozi uchun xizmatni qayta ishga tushiring.');await refresh()})});
 $('#note-form').addEventListener('submit',e=>{e.preventDefault();withButton(e.submitter,async()=>{const result=await api('note',{title:$('#note-title').value,text:$('#note-text').value});e.target.reset();notice('Xotiraga saqlandi. Manba: '+result.source_id);await loadSources();await refresh()})});
