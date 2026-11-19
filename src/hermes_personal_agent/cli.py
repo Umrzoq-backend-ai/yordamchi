@@ -145,6 +145,28 @@ def restore(path):
     return {'ok':True,'message':'Knowledge restored. Run setup for this host and install-skill to regenerate paths.'}
 
 
+def computer_cli(argv):
+    import argparse
+    from .desktop_controller import (
+        play_youtube, open_app, open_url, set_volume, get_volume, github_action
+    )
+    p = argparse.ArgumentParser(prog='hpa computer', description='Control local computer apps and media')
+    s = p.add_subparsers(dest='op', required=True)
+    a = s.add_parser('youtube'); a.add_argument('query')
+    a = s.add_parser('app'); a.add_argument('name')
+    a = s.add_parser('url'); a.add_argument('url')
+    a = s.add_parser('volume'); a.add_argument('level', nargs='?', default=None)
+    a = s.add_parser('github'); a.add_argument('subcommand')
+    args = p.parse_args(argv)
+    if args.op == 'youtube': return play_youtube(args.query)
+    if args.op == 'app': return open_app(args.name)
+    if args.op == 'url': return open_url(args.url)
+    if args.op == 'volume':
+        return get_volume() if args.level is None else set_volume(args.level)
+    if args.op == 'github': return github_action(args.subcommand)
+    return {'ok': False, 'error': 'Unknown operation'}
+
+
 def main(argv=None):
     argv=list(sys.argv[1:] if argv is None else argv)
     if hasattr(sys.stdout,'reconfigure'):sys.stdout.reconfigure(encoding='utf-8')
@@ -168,6 +190,7 @@ def main(argv=None):
             from .voice_control import main as telegram
             result=telegram(argv[1:])
         elif argv and argv[0]=='memory':result=memory(argv[1:])
+        elif argv and argv[0]=='computer':result=computer_cli(argv[1:])
         else:
             p=argparse.ArgumentParser(prog='hpa',description='Your portable personal Telegram agent')
             s=p.add_subparsers(dest='op',required=True)

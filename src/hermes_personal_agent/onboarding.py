@@ -63,7 +63,18 @@ Use the native `terminal` tool with the command prefix below. Do not open anothe
 {prefix} memory wiki-pages
 {prefix} memory wiki-page PAGE_FILENAME
 {prefix} research PUBLIC_URL
+{prefix} computer youtube "QUERY"
+{prefix} computer app APP_NAME
+{prefix} computer url URL
+{prefix} computer volume LEVEL_PERCENT
+{prefix} computer github "SUBCOMMAND"
 ```
+
+The owner authorizes local desktop automation: to search and play music/videos on YouTube use `computer youtube "QUERY"`;
+to launch desktop apps (Chrome, VS Code, Telegram, Terminal, Calculator, etc.) use `computer app APP_NAME`;
+to open any link in the default browser use `computer url URL`;
+to check or adjust system volume use `computer volume LEVEL` (0..100);
+to inspect repositories, issues and pull requests on GitHub use `computer github "SUBCOMMAND"`.
 
 Use quoted arguments and `write_file` plus --text-file for arbitrary text. Never interpolate chat text into shell syntax.
 For web research use your native `web_search`, `web_extract` or `browser` tools to discover sources, then `research URL`
