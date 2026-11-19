@@ -29,7 +29,12 @@ UPLOAD_TYPES = {'.txt', '.md', '.pdf', '.docx', '.pptx', '.xlsx', '.csv', '.tsv'
 def create_app(token=None, port=8787, task_runner=None, knowledge=None):
     from .setup_wizard import SetupWizard
     wizard=SetupWizard()
+    token_file = STATE / "control-token"
+    if not token and token_file.exists():
+        token = token_file.read_text(encoding="utf-8").strip()
     token = token or secrets.token_urlsafe(32)
+    if not token_file.exists():
+        token_file.write_text(token, encoding="utf-8")
     kb = knowledge or Knowledge()
     origins = {f'http://127.0.0.1:{port}', f'http://localhost:{port}'}
     hosts = {f'127.0.0.1:{port}', f'localhost:{port}'}
