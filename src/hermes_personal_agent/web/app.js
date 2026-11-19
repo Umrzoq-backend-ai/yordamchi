@@ -149,7 +149,35 @@ $('#reset').addEventListener('click',async()=>{try{await api('reset',{});recogni
 async function withButton(button,operation){button.disabled=true;try{await operation()}catch(error){notice(error.message,true)}finally{button.disabled=false}}
 $('#profile-form').addEventListener('submit',e=>{e.preventDefault();withButton(e.submitter,async()=>{await api('profile',Object.fromEntries(new FormData(e.target)));notice('Profil saqlandi. Yangi suhbatlarda qo‘llanadi. Telegram ovozi uchun xizmatni qayta ishga tushiring.');await refresh()})});
 $('#note-form').addEventListener('submit',e=>{e.preventDefault();withButton(e.submitter,async()=>{const result=await api('note',{title:$('#note-title').value,text:$('#note-text').value});e.target.reset();notice('Xotiraga saqlandi. Manba: '+result.source_id);await loadSources();await refresh()})});
-$('#file').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;if(file.size>10*1024*1024){notice('Fayl 10 MB dan kichik bo‘lsin.',true);e.target.value='';return}e.target.disabled=true;try{const data=new FormData();data.append('file',file);const result=await api('upload',data);notice('Hujjat saqlandi. Manba: '+result.source_id);await loadSources();await refresh()}catch(error){notice(error.message,true)}finally{e.target.disabled=false;e.target.value=''}});
+async function handleFileUpload(file){
+  if(!file)return;
+  if(file.size>100*1024*1024){notice('Fayl 100 MB dan kichik bo‘lsin.',true);$('#file').value='';return}
+  $('#file').disabled=true;
+  const label=$('#upload-label');
+  if(label)label.textContent=`Yuklanmoqda: ${file.name}...`;
+  notice(`⏳ "${file.name}" o‘qilmoqda va AI xotirasiga saqlanmoqda...`);
+  try{
+    const data=new FormData();
+    data.append('file',file);
+    const result=await api('upload',data);
+    notice(`✅ "${file.name}" muvaffaqiyatli saqlandi! (Manba ID: ${result.source_id})`);
+    await loadSources();
+    await refresh()
+  }catch(error){
+    notice(error.message||'Faylni yuklashda xatolik yuz berdi.',true)
+  }finally{
+    $('#file').disabled=false;
+    $('#file').value='';
+    if(label)label.textContent='Faylni bu yerga tashlang yoki bosing'
+  }
+}
+$('#file').addEventListener('change',e=>{if(e.target.files&&e.target.files[0])handleFileUpload(e.target.files[0])});
+const dropzone=$('#dropzone');
+if(dropzone){
+  ['dragenter','dragover'].forEach(ev=>{dropzone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();dropzone.classList.add('dragover')})});
+  ['dragleave','drop'].forEach(ev=>{dropzone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();dropzone.classList.remove('dragover')})});
+  dropzone.addEventListener('drop',e=>{const files=e.dataTransfer?.files;if(files&&files.length>0)handleFileUpload(files[0])});
+}
 function node(tag,text,className){const el=document.createElement(tag);el.textContent=text;if(className)el.className=className;return el}
 async function loadSources(){try{const result=await api('sources');$('#sources').replaceChildren();if(!result.sources.length)$('#sources').append(node('p','Hozircha manba yo‘q. Birinchi qaydingizni qo‘shing.','muted'));for(const source of result.sources){const row=node('div','','source-row'),info=node('div','');info.append(node('h3',source.title),node('small',source.chars+' belgi · '+source.id));const remove=node('button','Qidiruvdan chiqarish','quiet');remove.addEventListener('click',()=>{const dialog=$('#forget-dialog');dialog.returnValue='';dialog.oncancel=()=>{dialog.returnValue='cancel'};dialog.showModal();dialog.onclose=()=>{if(dialog.returnValue==='confirm')withButton(remove,async()=>{await api('forget',{id:source.id,confirm:true});notice('Manba qidiruvdan chiqarildi. Zaxira nusxalar alohida saqlanadi.');await loadSources();refresh()})}});row.append(info,remove);$('#sources').append(row)}}catch(error){notice(error.message,true)}}
 $('#refresh-sources').addEventListener('click',loadSources);

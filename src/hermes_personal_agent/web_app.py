@@ -23,8 +23,12 @@ async def body(request):
 ASSETS = Path(__file__).parent / 'web'
 TOKEN_KEY = web.AppKey('token', str)
 OPEN_TASK_KEY = web.AppKey('open_task', asyncio.Task)
-MAX_UPLOAD = 10 * 1024 * 1024
-UPLOAD_TYPES = {'.txt', '.md', '.pdf', '.docx', '.pptx', '.xlsx', '.csv', '.tsv'}
+MAX_UPLOAD = 100 * 1024 * 1024
+UPLOAD_TYPES = {
+    '.txt', '.md', '.pdf', '.docx', '.pptx', '.xlsx', '.csv', '.tsv',
+    '.json', '.yaml', '.yml', '.xml', '.log', '.py', '.js', '.ts',
+    '.sql', '.sh', '.c', '.cpp', '.h', '.hpp', '.html', '.htm', '.rst'
+}
 
 def create_app(token=None, port=8787, task_runner=None, knowledge=None):
     from .setup_wizard import SetupWizard
@@ -64,8 +68,9 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
                 return web.json_response({'error':'Kirish havolasi kerak. hpa web buyrug‘ini qayta oching.'}, status=401)
         try:
             response = await handler(request)
-        except (ValueError, KeyError, TypeError):
-            response = web.json_response({'error':'Kiritilgan ma’lumot yoki fayl formati noto‘g‘ri.'}, status=400)
+        except (ValueError, KeyError, TypeError) as exc:
+            msg = str(exc) if str(exc).strip() else "Kiritilgan ma’lumot yoki fayl formati noto‘g‘ri."
+            response = web.json_response({'error': msg}, status=400)
         except web.HTTPException:
             raise
         except Exception:

@@ -50,7 +50,7 @@ def extract(path):
     if extension in {".html", ".htm"}:
         parser = TextHTML(); parser.feed(path.read_text(encoding="utf-8", errors="replace"))
         return [("document", " ".join(parser.text))]
-    if extension in {".txt", ".md", ".csv", ".tsv", ".json", ".yaml", ".yml", ".xml", ".log", ".py", ".js", ".ts"}:
+    if extension in {".txt", ".md", ".csv", ".tsv", ".json", ".yaml", ".yml", ".xml", ".log", ".py", ".js", ".ts", ".sql", ".sh", ".c", ".cpp", ".h", ".hpp", ".html", ".htm", ".rst"}:
         raw = path.read_bytes()
         text = raw.decode("utf-16" if raw.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-8-sig", errors="replace")
         return [("document", text)]
