@@ -6,10 +6,11 @@ async function playGeminiSpeech(text) {
       currentAudio.pause();
       currentAudio = null;
     }
+    const currentToken = sessionStorage.getItem('hpa-token') || localStorage.getItem('hpa-token') || (typeof token !== 'undefined' ? token : '') || '';
     const resp = await fetch('/api/tts', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + token,
+        'Authorization': 'Bearer ' + currentToken,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ text: text.slice(0, 1500) })
@@ -19,16 +20,11 @@ async function playGeminiSpeech(text) {
       const audioUrl = URL.createObjectURL(blob);
       currentAudio = new Audio(audioUrl);
       await currentAudio.play();
-      return;
+    } else {
+      console.warn('Gemini TTS HTTP error:', resp.status);
     }
   } catch (err) {
-    console.warn('Gemini TTS error', err);
-  }
-  if ('speechSynthesis' in window) {
-    speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'uz-UZ';
-    speechSynthesis.speak(utterance);
+    console.warn('Gemini TTS playback error:', err);
   }
 }
 'use strict';

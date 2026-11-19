@@ -84,6 +84,9 @@ async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner'
                       f"Style preferences: {CONFIG.get('owner_style', '')}\n"
                       f"Current time: {datetime.now(ZoneInfo(CONFIG['timezone'])).isoformat()}.\n"
                       f"Retrieved context from memory:\n{recall}\n")
+        sys_prompt += ("\nMUROJAAT QOIDASI:\n"
+                       "Foydalanuvchiga 'aka' qo‘shimchasi bilan murojaat qilma! "
+                       "Unga shunchaki 'Umrzoq' deb (masalan: 'Salom, Umrzoq!', 'Qalaysiz, Umrzoq?', 'Xo‘p bo‘ladi, Umrzoq') do‘stona va samimiy murojaat qil.\n")
         
         contents = []
         if image:

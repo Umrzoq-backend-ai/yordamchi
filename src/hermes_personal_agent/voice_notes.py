@@ -62,7 +62,7 @@ async def transcribe(path):
         await client.aio.aclose()
 
 
-async def synthesize(text):
+async def synthesize(text, as_mp3=False):
     if not text.strip():
         raise ValueError("Speech text is empty")
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
@@ -83,12 +83,16 @@ async def synthesize(text):
         await client.aio.aclose()
     directory = STATE / "voice_replies"
     directory.mkdir(exist_ok=True)
-    target = directory / (uuid.uuid4().hex + ".ogg")
+    ext = ".mp3" if as_mp3 else ".ogg"
+    target = directory / (uuid.uuid4().hex + ext)
     command = [ffmpeg_path(), "-hide_banner", "-loglevel", "error", "-y"]
     if not content.startswith(b"RIFF") and any(value in mime.lower() for value in ("l16", "pcm")):
         match = re.search(r"rate=(\d+)", mime)
         command += ["-f", "s16le", "-ar", match.group(1) if match else "24000", "-ac", "1"]
-    command += ["-i", "pipe:0", "-vn", "-c:a", "libopus", "-b:a", "32k", "-ac", "1", str(target)]
+    if as_mp3:
+        command += ["-i", "pipe:0", "-vn", "-c:a", "libmp3lame", "-b:a", "64k", "-ac", "1", str(target)]
+    else:
+        command += ["-i", "pipe:0", "-vn", "-c:a", "libopus", "-b:a", "32k", "-ac", "1", str(target)]
     process = await asyncio.create_subprocess_exec(*command, stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE,
         creationflags=0x08000000 if os.name == "nt" else 0)

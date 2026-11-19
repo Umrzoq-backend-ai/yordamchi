@@ -73,7 +73,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             response = web.json_response({'error':'Amal bajarilmadi. Sozlamalarni tekshiring; yuborilgan vazifani tekshirmasdan takrorlamang.'}, status=500)
         response.headers.update({'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff',
             'Referrer-Policy':'no-referrer', 'X-Frame-Options':'DENY',
-            'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"})
+            'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"})
         return response
 
     app = web.Application(middlewares=[guard], client_max_size=MAX_UPLOAD+65536)
@@ -286,8 +286,8 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             return web.json_response({'error': 'Matn bo‘sh'}, status=400)
         from .voice_notes import synthesize
         try:
-            audio_path = await synthesize(text[:1200])
-            return web.FileResponse(audio_path, headers={'Content-Type': 'audio/ogg'})
+            audio_path = await synthesize(text[:1200], as_mp3=True)
+            return web.FileResponse(audio_path, headers={'Content-Type': 'audio/mpeg'})
         except Exception as exc:
             return web.json_response({'error': str(exc)}, status=500)
 
