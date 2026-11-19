@@ -172,6 +172,16 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             from .desktop_controller import play_youtube
             res = await asyncio.to_thread(play_youtube, clean_q)
             return web.json_response({'text': f"🎵 YouTubeda '{clean_q}' qo‘shig‘i ochildi va kompyuteringizda ijro etilmoqda!\nHavola: {res.get('url')}"})
+        if any(w in lower_raw for w in ["och", "ishga tushir", "yoq", "start", "open"]) and not any(w in lower_raw for w in ["youtube", "qo'shiq", "musiqa", "ashula", "qo‘shiq"]):
+            clean_app = raw
+            for stop in ["ilovasini", "ilovasi", "dasturini", "dasturi", "ochib ber", "och", "ishga tushir", "menga", "kompyuterda", "iltimos", "yoq", "programmani"]:
+                clean_app = re.sub(r'(?i)' + re.escape(stop), '', clean_app)
+            clean_app = clean_app.strip(" :,-_!?.	")
+            if clean_app:
+                from .desktop_controller import open_app
+                app_res = await asyncio.to_thread(open_app, clean_app)
+                if app_res.get('ok'):
+                    return web.json_response({'text': f"🚀 {app_res.get('message')}"})
         if busy.locked(): return web.json_response({'error':'Bitta vazifa bajarilmoqda. Natijani kuting.'},status=409)
         async with busy:
             result=await runner(raw, image=image)

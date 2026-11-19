@@ -169,14 +169,14 @@ def live_config(owner=True):
             "Foydalanuvchi 'Ekranimni ko‘ryapsanmi?', 'Ekranga qara', 'Bu nima?', 'Koddagi xatoni top' yoki ekranda nimalar borligini so‘rasa:\n"
             "HECH QACHON 'Men faqat ovozda gaplashaman, ekranni ko‘rmayman' dema! Sen ekranni to‘liq ko‘rib turibsan!\n"
             "Darhol ekranda aynan nimalar ko‘rinayotganini (ochiq dasturlar, veb sahifalar, xabarlar yoki kodlar) ayting va batafsil tahlil qiling.")
-        instruction += ("\nKOMPYUTER, ILOVALAR VA YOUTUBE BOSHQARUVI:\n"
-            "Sizda kompyuterni bevosita boshqarish uchun maxsus 'play_youtube', 'open_app', 'set_volume' vositalari mavjud!\n"
-            "Foydalanuvchi biror qo‘shiq, musiqa, ashula yoki video qo‘yishni so‘rasa (masalan: 'Youtubeda falon qo‘shiqni qo‘y', 'Musiqa qo‘yib ber'):\n"
-            "1. HECH QACHON 'men sun'iy intellektman, qo‘ya olmayman' dema!\n"
-            "2. HECH QACHON 'chatga havolasini yubordim' deb gapni aylantirma!\n"
-            "3. Darhol 'play_youtube' vositasini chaqir!\n"
-            "4. Ovozda samimiy qilib: 'Hozir YouTubeda qo‘yaman, marhamat tinglang!' deb o‘zbekcha javob ber.\n"
-            "Dasturlarni ochish uchun 'open_app', ovozni sozlash uchun esa 'set_volume' funksiyasini chaqir.\n")
+        instruction += ("\nKOMPYUTER, ILOVALAR, KAMERA VA YOUTUBE BOSHQARUVI:\n"
+            "Sizda kompyuterni bevosita boshqarish uchun maxsus 'open_app', 'play_youtube', 'set_volume' vositalari mavjud!\n"
+            "Foydalanuvchi biror dastur, kamera yoki xizmatni ochishni so‘rasa (masalan: 'Instagramni och', 'Kamerani och', 'Telegramni och', 'Brauzerni och', 'VS Codeni och', 'Terminalni och', 'Kalkulyatorni och'):\n"
+            "1. HECH QACHON 'men sun'iy intellektman, ocholmayman' dema!\n"
+            "2. Darhol 'open_app' vositasini chaqir va 'app_name' parametriga tegishli nomni uzat (masalan: 'instagram', 'kamera', 'telegram', 'chrome', 'code')!\n"
+            "3. Ovozda: 'Hozir ochaman!' deb samimiy va do‘stona javob ber.\n"
+            "Foydalanuvchi YouTubeda qo‘shiq, musiqa yoki video so‘rasa, darhol 'play_youtube' vositasini chaqir va 'Hozir YouTubeda qo‘yaman, marhamat tinglang!' deb ayt.\n"
+            "Ovozni sozlash uchun esa 'set_volume' funksiyasini chaqir.\n")
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"], system_instruction=instruction +
             "\nCurrent time ("+CONFIG['timezone']+"): " + now().isoformat(),
