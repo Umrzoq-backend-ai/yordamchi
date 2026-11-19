@@ -40,9 +40,9 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
     hosts = {f'127.0.0.1:{port}', f'localhost:{port}'}
     busy = asyncio.Lock()
     session_key = 'web:' + uuid.uuid4().hex
-    async def task(text):
+    async def task(text, image=None):
         from .hermes_tasks import run_task
-        return await run_task(text, session_key=session_key+':'+CONFIG.get('hermes_provider','openai-codex'))
+        return await run_task(text, session_key=session_key+':'+CONFIG.get('hermes_provider','openai-codex'), image=image)
     runner = task_runner or task
 
     @web.middleware
@@ -135,7 +135,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         return web.json_response(await asyncio.to_thread(kb.forget,str(data['id'])))
     async def chat(request):
         if wizard.auth.get('phase')=='waiting':return web.json_response({'error':'Avval AI loginini tugating.'},status=409)
-        data=await body(request); text=data.get('text','')
+        data=await body(request); text=data.get('text',''); image=data.get('image')
         if not isinstance(text,str) or not 1 <= len(text.strip()) <= 20000: raise ValueError()
         raw = text.strip()
         if raw == '/call':
@@ -159,7 +159,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             return web.json_response({'text': f"Hozirgi ovoz: {CONFIG.get('voice', 'Kore')}. Tanlash uchun: /voice aoede, /voice kore, /voice rasalgethi"})
         if busy.locked(): return web.json_response({'error':'Bitta vazifa bajarilmoqda. Natijani kuting.'},status=409)
         async with busy:
-            result=await runner(raw)
+            result=await runner(raw, image=image)
         if not result.get('ok'):
             return web.json_response({'error':'AI javob bermadi. Hermes loginini va tanlangan modelni tekshiring. Vazifa holatini tekshirmasdan takrorlamang.'},status=503)
         return web.json_response({'text':str(result.get('text',''))[:30000]})

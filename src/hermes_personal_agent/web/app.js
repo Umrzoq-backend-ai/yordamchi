@@ -16,7 +16,69 @@ async function refresh(){try{snapshot=await api('status');$('#connection').textC
 function updateClock(){try{$('#clock').textContent=new Intl.DateTimeFormat('uz',{hour:'2-digit',minute:'2-digit',timeZone:snapshot?.profile.timezone||'Asia/Tashkent'}).format(new Date())}catch{$('#clock').textContent=''}}
 function appendMessage(role,text){$('#welcome')?.remove();const item=document.createElement('div');item.className='message '+role;const who=document.createElement('span');who.className='who';who.textContent=role==='user'?'Siz':'Yordamchi';const content=document.createElement('div');content.textContent=text;item.append(who,content);$('#messages').append(item);$('#messages').scrollTop=$('#messages').scrollHeight;return item}
 function setBusy(value){busy=value;$('#send').disabled=value;$('#reset').disabled=value;$('#chat-state').textContent=value?'Javob tayyorlanmoqda…':'Tayyor';$('#orb-status').textContent=value?'Vazifa bajarilmoqda':'Muloqot markazi';$('#orb-label').textContent=value?'Fikringizni tushunyapman.':'Siz bilan birga.';$('#messages').setAttribute('aria-busy',String(value))}
-$('#chat-form').addEventListener('submit',async e=>{e.preventDefault();const text=$('#message').value.trim();if(!text||busy)return;appendMessage('user',text);$('#message').value='';setBusy(true);try{const result=await api('chat',{text});appendMessage('assistant',result.text||'Javob matni bo‘sh qaytdi.');if($('#speak').checked&&'speechSynthesis'in window){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(result.text);utterance.lang=({uz:'uz-UZ',en:'en-US',ru:'ru-RU'}[snapshot?.profile.language]||'uz-UZ');speechSynthesis.speak(utterance)}}catch(error){notice(error.message,true);appendMessage('assistant','Javob olinmadi. Ulanish va model sozlamalarini tekshiring.')}finally{setBusy(false);refresh()}});
+let screenStream = null;
+let screenVideo = null;
+const screenBtn = $('#screen-share');
+const screenText = $('#screen-share-text');
+const screenIndicator = $('#screen-indicator');
+
+if (screenBtn) {
+  screenBtn.addEventListener('click', async () => {
+    if (screenStream && screenStream.active) {
+      screenStream.getTracks().forEach(t => t.stop());
+      screenStream = null;
+      screenVideo = null;
+      screenText.textContent = 'Ekranni ulash';
+      screenBtn.classList.remove('active');
+      if (screenIndicator) screenIndicator.hidden = true;
+      notice('Ekran ulash to‘xtatildi.');
+      return;
+    }
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 } });
+      screenVideo = document.createElement('video');
+      screenVideo.srcObject = screenStream;
+      screenVideo.muted = true;
+      await screenVideo.play();
+      screenText.textContent = 'Ekranni to‘xtatish';
+      screenBtn.classList.add('active');
+      if (screenIndicator) screenIndicator.hidden = false;
+      notice('🖥️ Ekran ulandi! Istalgan savol yozsangiz, Yordamchi ekranni ko‘rib javob beradi.');
+      screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+        screenStream = null;
+        screenVideo = null;
+        screenText.textContent = 'Ekranni ulash';
+        screenBtn.classList.remove('active');
+        if (screenIndicator) screenIndicator.hidden = true;
+      });
+    } catch (err) {
+      if (err.name !== 'NotAllowedError') notice('Ekran ulashda xato: ' + err.message, true);
+    }
+  });
+}
+
+$('#chat-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const text=$('#message').value.trim();
+  if(!text||busy)return;
+  appendMessage('user',text);
+  $('#message').value='';
+  setBusy(true);
+  try{
+    let payload = { text };
+    if (screenStream && screenStream.active && screenVideo && screenVideo.videoWidth) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(screenVideo.videoWidth, 1280);
+        canvas.height = Math.min(screenVideo.videoHeight, 720);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+        payload.image = canvas.toDataURL('image/jpeg', 0.8);
+      } catch (err) {
+        console.error('Frame capture error', err);
+      }
+    }
+    const result=await api('chat',payload);appendMessage('assistant',result.text||'Javob matni bo‘sh qaytdi.');if($('#speak').checked&&'speechSynthesis'in window){speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(result.text);utterance.lang=({uz:'uz-UZ',en:'en-US',ru:'ru-RU'}[snapshot?.profile.language]||'uz-UZ');speechSynthesis.speak(utterance)}}catch(error){notice(error.message,true);appendMessage('assistant','Javob olinmadi. Ulanish va model sozlamalarini tekshiring.')}finally{setBusy(false);refresh()}});
 $('#message').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))$('#chat-form').requestSubmit()});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-prompt]');if(b){$('#message').value=b.dataset.prompt;$('#message').focus()}});
 $('#reset').addEventListener('click',async()=>{try{await api('reset',{});recognition?.abort();voiceActive=false;window.speechSynthesis?.cancel();$('#message').value='';$('#messages').replaceChildren(welcomeTemplate.cloneNode(true));$('#message').focus();notice('Yangi suhbat boshlandi. Bilimlaringiz saqlanadi.')}catch(error){notice(error.message,true)}});

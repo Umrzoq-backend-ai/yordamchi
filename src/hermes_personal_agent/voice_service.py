@@ -107,6 +107,10 @@ def live_config(owner=True):
             "Natija kelmaguncha bajarildi dema, soxta jarayon tafsilotlari aytma va ‘bir soniya’ni qayta-qayta takrorlama. "
             "Noaniq audio uchun ‘Oxirgi so‘zni qaytarasizmi?’ kabi aniq, qisqa savol ber; "
             "sheva, past ovoz yoki shovqinda taxmin qilib yangi amal boshlama.")
+        instruction += ("\nKOMPYUTER VA DESKTOP BOSHQARUVI:\n"
+            "Foydalanuvchi YouTubeda musiqa/video qo‘yishni, kompyuterda dasturlarni ochishni (Chrome, VS Code, Telegram, Terminal), "
+            "tizim ovozini sozlashni yoki GitHubni tekshirishni so‘rasa, buni hermes_task funksiyasi orqali bajaring. "
+            "Avval 'Xo‘p, hozir bajaraman!' deb ovozda ayting, so‘ng funksiyani chaqiring.")
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"], system_instruction=instruction +
             "\nCurrent time ("+CONFIG['timezone']+"): " + now().isoformat(),

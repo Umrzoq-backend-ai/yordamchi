@@ -66,13 +66,15 @@ def save_session(key,sid,old):
             key,sid,(old['turns']+1 if old else 1),old['started'] if old else timestamp()))
 
 
-async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner'):
+async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner', image=None):
     import os
     gemini_key = os.environ.get('GEMINI_API_KEY')
     if not gemini_key:
         return {'ok': False, 'error': 'Hermes provayderi cheklandi va GEMINI_API_KEY topilmadi.'}
     try:
+        import base64
         from google import genai
+        from google.genai import types
         client = genai.Client(api_key=gemini_key)
         kb = knowledge()
         recall = await asyncio.to_thread(kb.context, task) if learn else ""
@@ -82,15 +84,29 @@ async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner'
                       f"Style preferences: {CONFIG.get('owner_style', '')}\n"
                       f"Current time: {datetime.now(ZoneInfo(CONFIG['timezone'])).isoformat()}.\n"
                       f"Retrieved context from memory:\n{recall}\n")
+        
+        contents = []
+        if image:
+            b64_str = image.split(',', 1)[1] if ',' in image else image
+            raw_bytes = base64.b64decode(b64_str)
+            contents.append(types.Part.from_bytes(data=raw_bytes, mime_type='image/jpeg'))
+        contents.append(task)
+
         def _call():
-            return client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=task,
-                config={'system_instruction': sys_prompt}
-            )
+            for m in ['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite']:
+                try:
+                    return client.models.generate_content(
+                        model=m,
+                        contents=contents,
+                        config={'system_instruction': sys_prompt}
+                    )
+                except Exception:
+                    continue
+            raise RuntimeError('Gemini modellari javob bermadi.')
+
         response = await asyncio.to_thread(_call)
         text = response.text.strip() if (response and response.text) else "Vazifa bajarildi."
-        if learn and text:
+        if learn and text and not image:
             await asyncio.to_thread(kb.add_text, 'Agent response', text, kind='conversation', trust='assistant')
         return {'ok': True, 'text': text}
     except Exception as exc:
@@ -107,8 +123,10 @@ def parse_result(stdout):
     return next((e for e in reversed(events) if e.get('type')=='result'),None)
 
 
-async def run_task(task,session_key='owner',*,learn=True,source_trust='owner'):
+async def run_task(task,session_key='owner',*,learn=True,source_trust='owner',image=None):
     async with LOCKS.setdefault(session_key,asyncio.Lock()):
+        if image:
+            return await fallback_gemini(task, session_key, learn=learn, source_trust=source_trust, image=image)
         return await _run_task(task,session_key,learn=learn,source_trust=source_trust)
 
 
