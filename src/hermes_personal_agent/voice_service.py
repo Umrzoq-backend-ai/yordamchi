@@ -64,11 +64,11 @@ def live_config(owner=True):
         types.FunctionDeclaration(
             name="google_search",
             behavior="NON_BLOCKING",
-            description="Internetdan odamlar, shaxslar (masalan: 'Komiljon Hamidov'), faktlar, ob-havo, valyuta kursi, yangiliklar yoki ma'lumotlarni Google orqali qidirish.",
+            description="Internetdan real vaqtda istalgan shaxslar, odamlar (biografiyasi, kimligi), tashkilotlar, tushunchalar, voqealar, yangiliklar, ob-havo, valyuta kursi yoki har qanday savol va faktlarni Google orqali qidirib aniq topish.",
             parameters_json_schema={
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Qidiruv so'rovi yoki shaxs ismi"}
+                    "query": {"type": "string", "description": "Qidiruv so'rovi yoki shaxs/tushuncha nomi"}
                 },
                 "required": ["query"]
             }
@@ -170,13 +170,16 @@ def live_config(owner=True):
             "HECH QACHON 'Men faqat ovozda gaplashaman, ekranni ko‘rmayman' dema! Sen ekranni to‘liq ko‘rib turibsan!\n"
             "Darhol ekranda aynan nimalar ko‘rinayotganini (ochiq dasturlar, veb sahifalar, xabarlar yoki kodlar) ayting va batafsil tahlil qiling.")
         instruction += ("\nQIDIRUV VA MA'LUMOT TOPISH QOIDALARI (ENG MUHIM):\n"
-            "1. SHAXSLAR VA FAKTLARNI QIDIRISH:\n"
-            "   Foydalanuvchi biror shaxs (masalan: 'Komiljon Hamidovni qidirib ber', 'Falonchi kim?'), "
-            "   tashkilot, tushuncha, fakt, yangilik yoki ob-havoni so'rasa, FAQAT 'google_search' vositasini chaqiring!\n"
-            "   HECH QACHON uni musiqa yoki qo'shiq deb o'ylamang! Hech qachon 'qo'shig'ini eshiting' deb to'qimang! Aniq fakt va ma'lumotni o'zbek tilida qisqa (1-2 gapda) aytib bering.\n"
+            "1. BARCHA SHAXSLAR, TUSHUNCHALAR VA FAKTLARNI QIDIRISH:\n"
+            "   Foydalanuvchi biror shaxs haqida ('falonchi kim?', 'Komiljon Hamidov kim?', 'u kim?'), "
+            "   tashkilot, ilmiy/texnik tushuncha, tarixiy voqea, yangilik yoki istalgan mavzuda ma'lumot so'raganda:\n"
+            "   - HECH QACHON o'zingizdan to'qimang, taxmin yoki tavakkal qilmang!\n"
+            "   - DARHOL 'google_search' vositasini chaqiring!\n"
+            "   - HECH QACHON uni musiqa yoki qo'shiq deb o'ylamang! Hech qachon 'qo'shig'ini eshiting' deb to'qimang!\n"
+            "   - JAVOBNI KALTA QILMANG (faqat 1 ta quruq gap aytib to'xtab qolmang)! Olingan qidiruv natijasini foydalanuvchiga to'liq, mazmundor, batafsil va tushunarli qilib (3-5 ta to'liq gapda, kimligi, faoliyati, yutuqlari va asosiy faktlarini) o'zbek tilida erkin va chiroyli so'zlab bering!\n"
             "2. MUSIQA VA YOUTUBE:\n"
             "   'play_youtube' vositasini FAQAT va FAQAT foydalanuvchi ochiqchasiga musiqa, ashula, qo'shiq yoki videoni qo'yishni/eshitishni so'ragandagina chaqiring!\n"
-            "   (Masalan: 'Sherali Jo'rayev qo'shig'ini qo'y', 'Musiqa qo'yib ber'). Oddiy qidiruvlarda 'play_youtube'ni ISHLATMANG!\n")
+            "   (Masalan: 'Sherali Jo'rayev qo'shig'ini qo'y', 'Musiqa qo'yib ber'). Oddiy qidiruvlarda yoki shaxs kimligini so'raganda 'play_youtube'ni ASLO ISHLATMANG!\n")
         instruction += ("\nKOMPYUTER, ILOVALAR, KAMERA VA YOUTUBE BOSHQARUVI:\n"
             "Sizda kompyuterni bevosita boshqarish uchun maxsus 'open_app', 'play_youtube', 'set_volume' vositalari mavjud!\n"
             "Foydalanuvchi biror dastur, kamera yoki xizmatni ochishni so‘rasa (masalan: 'Instagramni och', 'Kamerani och', 'Telegramni och', 'Brauzerni och', 'VS Codeni och', 'Terminalni och', 'Kalkulyatorni och'):\n"
@@ -540,7 +543,12 @@ class CallBridge:
                 try:
                     resp = await client.aio.models.generate_content(
                         model=m,
-                        contents=f"Quyidagi savolga internetdan eng so'nggi ma'lumotlarni qidirib, o'zbek tilida juda qisqa va aniq (1-2 gapda) javob ber:\n{query}",
+                        contents=(
+                            f"Quyidagi savol yoki mavzu bo'yicha Google qidiruv natijalaridan foydalanib, "
+                            f"o'zbek tilida to'liq, mazmunli, ishonchli va batafsil (3-5 ta to'liq gapda) jonli ovozda gapirishga qulay qilib javob tayyorla. "
+                            f"Kalta 1 gap bilan cheklanma, tavakkal qilib to'qima. "
+                            f"Shaxs yoki mavzuning kimligi, asosiy faoliyati, sohasidagi o'rni va eng muhim faktlarini aniq bayon et:\n{query}"
+                        ),
                         config=types.GenerateContentConfig(
                             tools=[types.Tool(google_search={})]
                         )
