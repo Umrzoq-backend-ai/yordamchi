@@ -11,6 +11,7 @@ import webbrowser
 from pathlib import Path
 from urllib.parse import unquote
 import re
+import aiohttp
 from aiohttp import web
 from .voice_common import CONFIG, HERMES, STATE
 from .knowledge import Knowledge
@@ -291,16 +292,15 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
             body_data = await request.read()
             token = (STATE / "control-token").read_text(encoding="utf-8").strip()
             port = CONFIG["control_port"]
-            import urllib.request
-            req = urllib.request.Request(
-                f"http://127.0.0.1:{port}/screen-frame",
-                data=body_data,
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "image/jpeg"},
-                method="POST"
-            )
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
-                res_data = json.loads(resp.read().decode("utf-8"))
-                return web.json_response(res_data)
+            async with aiohttp.ClientSession() as sess:
+                async with sess.post(
+                    f"http://127.0.0.1:{port}/screen-frame",
+                    data=body_data,
+                    headers={"Authorization": f"Bearer {token}", "Content-Type": "image/jpeg"},
+                    timeout=aiohttp.ClientTimeout(total=1.5)
+                ) as resp:
+                    res_data = await resp.json()
+                    return web.json_response(res_data)
         except Exception as exc:
             return web.json_response({"ok": False, "error": str(exc)}, status=500)
 

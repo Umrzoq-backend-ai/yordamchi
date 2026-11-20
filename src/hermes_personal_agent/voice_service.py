@@ -62,13 +62,25 @@ def live_config(owner=True):
     instruction = build_prompt() + '\n' + personal_context()
     declarations = [
         types.FunctionDeclaration(
-            name="play_youtube",
+            name="google_search",
             behavior="NON_BLOCKING",
-            description="YouTube orqali musiqa, qo'shiq yoki videoni qidirish va kompyuter brauzerida darhol ochib ijro etish.",
+            description="Internetdan odamlar, shaxslar (masalan: 'Komiljon Hamidov'), faktlar, ob-havo, valyuta kursi, yangiliklar yoki ma'lumotlarni Google orqali qidirish.",
             parameters_json_schema={
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Qo'shiq nomi, ijrochi yoki video nomi"}
+                    "query": {"type": "string", "description": "Qidiruv so'rovi yoki shaxs ismi"}
+                },
+                "required": ["query"]
+            }
+        ),
+        types.FunctionDeclaration(
+            name="play_youtube",
+            behavior="NON_BLOCKING",
+            description="FAQAT foydalanuvchi musiqa, ashula, qo'shiq yoki video qo'yishni so'raganda YouTube orqali kompyuterda ijro etish. Shaxs yoki faktlarni qidirish uchun ISHLATMANG!",
+            parameters_json_schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Qo'shiq nomi yoki ijrochi"}
                 },
                 "required": ["query"]
             }
@@ -76,11 +88,11 @@ def live_config(owner=True):
         types.FunctionDeclaration(
             name="open_app",
             behavior="NON_BLOCKING",
-            description="Kompyuterda ilovalarni ochish (VS Code, Chrome, Telegram, Terminal va boshqalar).",
+            description="Kompyuterda ilovalarni ochish (Kamera, Instagram, VS Code, Chrome, Telegram, Terminal va boshqalar).",
             parameters_json_schema={
                 "type": "object",
                 "properties": {
-                    "app_name": {"type": "string", "description": "Dastur nomi (chrome, code, telegram, terminal)"}
+                    "app_name": {"type": "string", "description": "Dastur nomi (kamera, instagram, chrome, code, telegram, terminal)"}
                 },
                 "required": ["app_name"]
             }
@@ -95,18 +107,6 @@ def live_config(owner=True):
                     "level": {"type": "integer", "description": "Ovoz darajasi foizda (0-100)"}
                 },
                 "required": ["level"]
-            }
-        ),
-        types.FunctionDeclaration(
-            name="google_search",
-            behavior="NON_BLOCKING",
-            description="Internetdan ob-havo, valyuta kursi, yangiliklar, faktlar yoki istalgan ma'lumotni Google orqali qidirish.",
-            parameters_json_schema={
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Qidiruv so'rovi"}
-                },
-                "required": ["query"]
             }
         ),
         types.FunctionDeclaration(name="end_call", description="Shu qo'ng'iroqni tugatish.",
@@ -169,6 +169,14 @@ def live_config(owner=True):
             "Foydalanuvchi 'Ekranimni ko‘ryapsanmi?', 'Ekranga qara', 'Bu nima?', 'Koddagi xatoni top' yoki ekranda nimalar borligini so‘rasa:\n"
             "HECH QACHON 'Men faqat ovozda gaplashaman, ekranni ko‘rmayman' dema! Sen ekranni to‘liq ko‘rib turibsan!\n"
             "Darhol ekranda aynan nimalar ko‘rinayotganini (ochiq dasturlar, veb sahifalar, xabarlar yoki kodlar) ayting va batafsil tahlil qiling.")
+        instruction += ("\nQIDIRUV VA MA'LUMOT TOPISH QOIDALARI (ENG MUHIM):\n"
+            "1. SHAXSLAR VA FAKTLARNI QIDIRISH:\n"
+            "   Foydalanuvchi biror shaxs (masalan: 'Komiljon Hamidovni qidirib ber', 'Falonchi kim?'), "
+            "   tashkilot, tushuncha, fakt, yangilik yoki ob-havoni so'rasa, FAQAT 'google_search' vositasini chaqiring!\n"
+            "   HECH QACHON uni musiqa yoki qo'shiq deb o'ylamang! Hech qachon 'qo'shig'ini eshiting' deb to'qimang! Aniq fakt va ma'lumotni o'zbek tilida qisqa (1-2 gapda) aytib bering.\n"
+            "2. MUSIQA VA YOUTUBE:\n"
+            "   'play_youtube' vositasini FAQAT va FAQAT foydalanuvchi ochiqchasiga musiqa, ashula, qo'shiq yoki videoni qo'yishni/eshitishni so'ragandagina chaqiring!\n"
+            "   (Masalan: 'Sherali Jo'rayev qo'shig'ini qo'y', 'Musiqa qo'yib ber'). Oddiy qidiruvlarda 'play_youtube'ni ISHLATMANG!\n")
         instruction += ("\nKOMPYUTER, ILOVALAR, KAMERA VA YOUTUBE BOSHQARUVI:\n"
             "Sizda kompyuterni bevosita boshqarish uchun maxsus 'open_app', 'play_youtube', 'set_volume' vositalari mavjud!\n"
             "Foydalanuvchi biror dastur, kamera yoki xizmatni ochishni so‘rasa (masalan: 'Instagramni och', 'Kamerani och', 'Telegramni och', 'Brauzerni och', 'VS Codeni och', 'Terminalni och', 'Kalkulyatorni och'):\n"
@@ -525,20 +533,26 @@ class CallBridge:
             from google import genai
             from google.genai import types
             from dotenv import dotenv_values
-            env_path = APP_HOME / '.env'
-            key = dotenv_values(env_path).get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY')
+            key = os.environ.get('GEMINI_API_KEY') or dotenv_values(STATE.parent / '.env').get('GEMINI_API_KEY') or dotenv_values(STATE / '.env').get('GEMINI_API_KEY')
             client = genai.Client(api_key=key)
-            resp = await client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=f"Quyidagi savolga internetdan eng so'nggi ma'lumotlarni qidirib, o'zbek tilida juda qisqa va aniq (1-2 gapda) javob ber:\n{query}",
-                config=types.GenerateContentConfig(
-                    tools=[types.Tool(google_search={})]
-                )
-            )
-            return resp.text or "Ma'lumot topilmadi."
+            models_to_try = ["gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview", "gemini-2.5-flash"]
+            for m in models_to_try:
+                try:
+                    resp = await client.aio.models.generate_content(
+                        model=m,
+                        contents=f"Quyidagi savolga internetdan eng so'nggi ma'lumotlarni qidirib, o'zbek tilida juda qisqa va aniq (1-2 gapda) javob ber:\n{query}",
+                        config=types.GenerateContentConfig(
+                            tools=[types.Tool(google_search={})]
+                        )
+                    )
+                    if resp and resp.text:
+                        return resp.text.strip()
+                except Exception as model_err:
+                    LOG.warning("Search model %s failed: %s", m, model_err)
+            return "Internetdan aniq ma'lumot topilmadi."
         except Exception as exc:
             LOG.error("Google grounding search error: %s", exc)
-            return f"Qidiruvda xatolik: {type(exc).__name__}"
+            return "Hozircha ma'lumot topilmadi." 
 
     async def run(self):
         workers = []

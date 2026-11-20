@@ -67,7 +67,10 @@ function startScreenStreaming() {
         try {
           await fetch('/api/screen-frame', {
             method: 'POST',
-            headers: { 'Content-Type': 'image/jpeg' },
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'image/jpeg'
+            },
             body: blob
           });
         } catch (_) {}
