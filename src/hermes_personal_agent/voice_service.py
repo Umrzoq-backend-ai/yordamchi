@@ -147,22 +147,10 @@ def live_config(owner=True):
             "noaniq eshitilsa, taxmin qilib amal bajarishdan oldin aynan noaniq qismini qisqa qayta so‘ra. "
             "Eshitilmagan so‘zlarni to‘qima. Foydalanuvchi gapini tugatishini kut. "
             "O‘, g‘, q, x va h tovushlarini aniq talaffuz qil.")
-        instruction += ("\nOVOZLI SUHBAT USLUBI:\n"
-            "Samimiy, jonli va emotsional o‘zbekcha suhbatlash. Kitobiy yoki robotdek monoton ohangda gapirma. "
-            "Qiziqarli mavzuda qiziqish va yengil hayratni, jiddiy mavzuda bosiqlikni ovoz ohangida ifodala; "
-            "sun’iy kulgi, ortiqcha hayajon yoki hislarni bo‘rttirishdan saqlan. "
-            "Odatda 1–2 ta qisqa gap aytib, suhbatdoshga navbat ber. Batafsil tushuntirish faqat so‘ralganda. "
-            "Suhbatdosh uzun fikrni bo‘lib aytsa, tabiiy pauzasida ba’zan qisqa ‘mm-hmm’, ‘aha’, "
-            "‘ha, tushunarli’ kabi tinglayotganingni bildiruvchi reaksiya qil. Har gapga reaksiya qilma, "
-            "muhim so‘zlarni bosib ketma va foydalanuvchini to‘xtatma. ‘To‘g‘ri’ kabi tasdiqni faqat mazmuniga "
-            "rostdan qo‘shilsang ishlat; ‘mm-hmm’ tinglayotganingni bildiradi, topshiriq bajarilganini emas. "
-            "So‘z qidirayotganda zarur bo‘lsa ‘Xo‘sh…’, ‘Demak…’ kabi juda qisqa tabiiy kirish ishlat; "
-            "buni har javobda takrorlama. Uzoq vazifa yoki funksiya chaqirishdan OLDIN "
-            "‘Xo‘p, hozir tekshirib ko‘raman’ kabi bir qisqa ovozli izoh ber, keyin funksiyani chaqir. "
-            "Vazifa fon rejimida ishlayotganida suhbatdoshning yangi gapiga javob berishda davom et. "
-            "Natija kelmaguncha bajarildi dema, soxta jarayon tafsilotlari aytma va ‘bir soniya’ni qayta-qayta takrorlama. "
-            "Noaniq audio uchun ‘Oxirgi so‘zni qaytarasizmi?’ kabi aniq, qisqa savol ber; "
-            "sheva, past ovoz yoki shovqinda taxmin qilib yangi amal boshlama.")
+        instruction += ("\nTEZKOR VA ANIQ MULOQOT QOIDASI (ENG MUHIM):\n"
+            "- Foydalanuvchi gapirishi bilan kutib turmasdan DARHOL va bittada chaqqon javob bering!\n"
+            "- Hech qachon jim qolib ketmang, o‘ylanib turmang, keraksiz 'mm-hmm', 'aha', 'xo‘sh', 'demak' deb vaqt cho‘zmang!\n"
+            "- Har doim savolga aniq, to‘g‘ri va to‘liq ovozda javob qaytaring.\n")
         instruction += ("\nEKRAN VISION VA KO‘RISH QOBILIYATI:\n"
             "Foydalanuvchi kompyuter ekranini siz bilan real vaqtda ulagan (Screen Share faol).\n"
             "Siz foydalanuvchining kompyuter ekranidagi barcha tasvirlarni, ochiq dasturlarni (VS Code, Chrome, Terminal, Telegram), sahifalar, kodlar, matnlar va rasmlarni to‘g‘ridan-to‘g‘ri KO‘RIB TURIBSIZ!\n"
@@ -189,18 +177,20 @@ def live_config(owner=True):
             "Foydalanuvchi YouTubeda qo‘shiq, musiqa yoki video so‘rasa, darhol 'play_youtube' vositasini chaqir va 'Hozir YouTubeda qo‘yaman, marhamat tinglang!' deb ayt.\n"
             "Ovozni sozlash uchun esa 'set_volume' funksiyasini chaqir.\n")
     return types.LiveConnectConfig(
-        response_modalities=["AUDIO"], system_instruction=instruction +
-            "\nCurrent time ("+CONFIG['timezone']+"): " + now().isoformat(),
+        response_modalities=["AUDIO"],
+        system_instruction=instruction + "\nCurrent time ("+CONFIG['timezone']+"): " + now().isoformat(),
         speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=CONFIG["voice"]))),
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(automatic_activity_detection=
-            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=500,
-                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW)),
+            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=250,
+                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_HIGH)),
         tools=[types.Tool(function_declarations=declarations)],
         context_window_compression=types.ContextWindowCompressionConfig(
-            sliding_window=types.SlidingWindow()),
+            trigger_tokens=16000,
+            sliding_window=types.SlidingWindow(target_tokens=4000)),
     )
 
 
@@ -910,6 +900,10 @@ class Service:
         try:
             data = await request.read()
             if self.bridge and self.bridge.connected and getattr(self.bridge, 'session', None):
+                now_t = time.monotonic()
+                if getattr(self.bridge, '_last_frame_sent', 0) + 1.5 > now_t:
+                    return web.json_response({"ok": True, "delivered": False, "throttled": True})
+                self.bridge._last_frame_sent = now_t
                 from google.genai import types
                 await self.bridge.session.send_realtime_input(media=types.Blob(data=data, mime_type="image/jpeg"))
                 return web.json_response({"ok": True, "delivered": True})

@@ -54,29 +54,36 @@ const screenIndicator = $('#screen-indicator');
 
 function startScreenStreaming() {
   if (screenStreamInterval) clearInterval(screenStreamInterval);
+  let sending = false;
   screenStreamInterval = setInterval(async () => {
-    if (!screenStream || !screenStream.active || !screenVideo || !screenVideo.videoWidth) return;
+    if (!screenStream || !screenStream.active || !screenVideo || !screenVideo.videoWidth || sending) return;
     try {
+      sending = true;
       const canvas = document.createElement('canvas');
-      canvas.width = Math.min(screenVideo.videoWidth, 1024);
-      canvas.height = Math.min(screenVideo.videoHeight, 576);
+      canvas.width = Math.min(screenVideo.videoWidth, 800);
+      canvas.height = Math.min(screenVideo.videoHeight, 450);
       const ctx = canvas.getContext('2d');
       ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
         try {
-          await fetch('/api/screen-frame', {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + token,
-              'Content-Type': 'image/jpeg'
-            },
-            body: blob
-          });
-        } catch (_) {}
-      }, 'image/jpeg', 0.65);
-    } catch (_) {}
-  }, 1000);
+          if (blob) {
+            await fetch('/api/screen-frame', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'image/jpeg'
+              },
+              body: blob
+            });
+          }
+        } finally {
+          sending = false;
+        }
+      }, 'image/jpeg', 0.55);
+    } catch (_) {
+      sending = false;
+    }
+  }, 2000);
 }
 
 function stopScreenStreaming() {
