@@ -113,7 +113,7 @@ def live_config(owner=True):
                 parameters_json_schema={"type": "object", "properties": {}})]
     if owner:
         declarations.insert(0, types.FunctionDeclaration(name="hermes_task", behavior="NON_BLOCKING",
-                description="foydalanuvchi so'ragan haqiqiy vazifani mavjud Hermes agentida bajarish.",
+                description="Fayllar, Telegram amallari va murakkab hisob-kitoblar uchun. Ekranni ko'rish yoki tahlil qilish uchun ISHLATMANG — siz ekranni o'zingiz to'g'ridan-to'g'ri ko'rib turibsiz.",
                 parameters_json_schema={"type": "object", "properties": {
                     "task": {"type": "string", "description": "To'liq topshiriq va kerakli kontekst."}},
                     "required": ["task"]}))
@@ -165,10 +165,10 @@ def live_config(owner=True):
             "sheva, past ovoz yoki shovqinda taxmin qilib yangi amal boshlama.")
         instruction += ("\nEKRAN VISION VA KO‘RISH QOBILIYATI:\n"
             "Foydalanuvchi kompyuter ekranini siz bilan real vaqtda ulagan (Screen Share faol).\n"
-            "Siz foydalanuvchining kompyuter ekranidagi barcha tasvirlarni, ochiq oynalarni, brauzer sahifalarini, kodlarni va matnlarni bevosita KO‘RIB TURIBSIZ!\n"
+            "Siz foydalanuvchining kompyuter ekranidagi barcha tasvirlarni, ochiq dasturlarni (VS Code, Chrome, Terminal, Telegram), sahifalar, kodlar, matnlar va rasmlarni to‘g‘ridan-to‘g‘ri KO‘RIB TURIBSIZ!\n"
             "Foydalanuvchi 'Ekranimni ko‘ryapsanmi?', 'Ekranga qara', 'Bu nima?', 'Koddagi xatoni top' yoki ekranda nimalar borligini so‘rasa:\n"
-            "HECH QACHON 'Men faqat ovozda gaplashaman, ekranni ko‘rmayman' dema! Sen ekranni to‘liq ko‘rib turibsan!\n"
-            "Darhol ekranda aynan nimalar ko‘rinayotganini (ochiq dasturlar, veb sahifalar, xabarlar yoki kodlar) ayting va batafsil tahlil qiling.")
+            "- HECH QACHON 'ko‘rmayapman', 'ekranni ko‘ra olmayman' yoki 'ekranni ulashishingiz kerak' dema!\n"
+            "- Hech qanday asbob/vosita chaqirmasdan, DARHOL ekrandagi ochiq oynalarni, dasturlarni, sahifa sarlavhalarini va matnlarni o‘zbek tilida aniq va batafsil so‘zlab bering.")
         instruction += ("\nQIDIRUV VA MA'LUMOT TOPISH QOIDALARI (ENG MUHIM):\n"
             "1. BARCHA SHAXSLAR, TUSHUNCHALAR VA FAKTLARNI QIDIRISH:\n"
             "   Foydalanuvchi biror shaxs haqida ('falonchi kim?', 'Komiljon Hamidov kim?', 'u kim?'), "

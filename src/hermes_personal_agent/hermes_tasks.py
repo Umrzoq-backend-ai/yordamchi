@@ -68,7 +68,11 @@ def save_session(key,sid,old):
 
 async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner', image=None):
     import os
-    gemini_key = os.environ.get('GEMINI_API_KEY')
+    from dotenv import dotenv_values
+    from .voice_common import STATE
+    gemini_key = (os.environ.get('GEMINI_API_KEY') or
+                  dotenv_values(STATE.parent / '.env').get('GEMINI_API_KEY') or
+                  dotenv_values(STATE / '.env').get('GEMINI_API_KEY'))
     if not gemini_key:
         return {'ok': False, 'error': 'Hermes provayderi cheklandi va GEMINI_API_KEY topilmadi.'}
     try:
@@ -96,7 +100,7 @@ async def fallback_gemini(task, session_key, *, learn=True, source_trust='owner'
         contents.append(task)
 
         def _call():
-            for m in ['gemini-3.5-flash-lite', 'gemini-2.5-flash-lite']:
+            for m in ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite-preview']:
                 try:
                     return client.models.generate_content(
                         model=m,
