@@ -143,9 +143,9 @@ class TelegramAgent:
             self.store.save()
             self.queue.put_nowait(event.message)
             return
-        # Other people can request only a message relay; their text never goes
-        # into the owner task queue. Group relays require an explicit mention.
-        if (not self.store.data['paused'] and (event.is_private or getattr(event, 'mentioned', False))
+        # Boshqa odamlar yoki botlar xabarlarini egasiga uzatish FAQAT sozlamada yoqilgan bo'lsagina ishlaydi (default: o'chiq).
+        if (CONFIG.get('enable_message_relay', False)
+                and not self.store.data['paused'] and (event.is_private or getattr(event, 'mentioned', False))
                 and event.sender_id and event.sender_id != self.service.owner_id and len(self.relay_tasks) < 20):
             relay_task = self.spawn(self.relay_incoming(event))
             self.relay_tasks.add(relay_task)
@@ -162,6 +162,8 @@ class TelegramAgent:
             self.mission_tasks[mission["id"]] = self.spawn(self.follow_up(mission))
 
     async def relay_incoming(self, event):
+        if not CONFIG.get('enable_message_relay', False):
+            return
         async with self.relay_slots:
             text = (event.raw_text or '').strip()
             message = event.message
