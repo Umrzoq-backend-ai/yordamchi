@@ -208,19 +208,17 @@ def live_config(owner=True):
             "Ovozni sozlash uchun esa 'set_volume' funksiyasini chaqir.\n")
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"],
-        system_instruction=instruction + "\nCurrent time ("+CONFIG['timezone']+"): " + now().isoformat(),
+        system_instruction=instruction + "\nCurrent time (" + CONFIG['timezone'] + "): " + now().isoformat(),
         speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=CONFIG["voice"]))),
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(automatic_activity_detection=
-            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=250,
+            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=350,
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_HIGH)),
         tools=[types.Tool(function_declarations=declarations)],
         context_window_compression=types.ContextWindowCompressionConfig(
-            trigger_tokens=16000,
-            sliding_window=types.SlidingWindow(target_tokens=4000)),
+            sliding_window=types.SlidingWindow()),
     )
 
 

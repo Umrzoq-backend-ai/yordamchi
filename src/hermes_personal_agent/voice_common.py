@@ -19,7 +19,7 @@ DEFAULTS = {
     "owner_name": "Owner", "owner_username": "", "owner_id": None, "owner_style": "",
     "agent_username": "", "agent_id": None, "timezone": "Asia/Tashkent", "language": "uz",
     "introduction": "", "personal_context": "",
-    "model": "gemini-2.5-flash-native-audio-latest", "voice": "Rasalgethi", "transcription_model": "gemini-3.8-flash",
+    "model": "gemini-3.8-live", "voice": "Rasalgethi", "transcription_model": "gemini-3.8-flash",
     "voice_provider": "gemini", "openai_live_model": "gpt-live-1", "openai_live_voice": "marin", "openai_env_file": "",
     "openai_live_max_minutes": 3,
     "tts_model": "gemini-3.8-flash-tts", "voice_note_replies": True,
