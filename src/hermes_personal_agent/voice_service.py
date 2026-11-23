@@ -42,29 +42,40 @@ LOG = logging.getLogger("hermes_voice")
 FRAME_BYTES = 960  # 10 ms, 48 kHz, mono, signed 16-bit PCM
 PLAYBACK_START_BYTES = FRAME_BYTES * 4  # 40 ms initial pre-buffer (reduced from 120 ms)
 
+class Realtime3xDownsampler:
+    """Seamless real-time 3:1 downsampler from 48kHz to 16kHz int16 PCM with boxcar anti-aliasing."""
+    def resample_chunk(self, in_samples: np.ndarray) -> np.ndarray:
+        n = len(in_samples) - (len(in_samples) % 3)
+        if n == 0:
+            return np.array([], dtype=np.int16)
+        s = in_samples[:n].astype(np.int32)
+        avg = (s[0::3] + s[1::3] + s[2::3]) // 3
+        return np.clip(avg, -32767, 32767).astype(np.int16)
+
 class Realtime2xResampler:
-    """Seamless real-time 2x upsampler from 24kHz to 48kHz int16 PCM with state continuity and clipping protection."""
-    def __init__(self):
+    """Seamless real-time 2x upsampler from 24kHz to 48kHz int16 PCM with state continuity, headroom scaling, and anti-clipping."""
+    def __init__(self, scale: float = 0.85):
         self.last_sample = None
+        self.scale = scale
 
     def resample_chunk(self, in_samples: np.ndarray, last: bool = False) -> np.ndarray:
         if in_samples.size == 0:
             return np.array([], dtype=np.int16)
+        scaled = (in_samples.astype(np.float32) * self.scale).astype(np.int32)
         n = in_samples.size
         out = np.empty(n * 2, dtype=np.int16)
-        # Even positions: original samples clamped to avoid overflow
-        np.clip(in_samples, -32767, 32767, out=out[0::2])
+        # Even positions: original samples scaled and clamped
+        np.clip(scaled, -32000, 32000, out=out[0::2])
         # Odd positions: interpolated midpoint between adjacent samples
-        s = in_samples.astype(np.int32)
         mid = np.empty(n, dtype=np.int32)
         if self.last_sample is None:
-            mid[0] = s[0]
+            mid[0] = scaled[0]
         else:
-            mid[0] = (self.last_sample + s[0]) // 2
+            mid[0] = (self.last_sample + scaled[0]) // 2
         if n > 1:
-            mid[1:] = (s[:-1] + s[1:]) // 2
-        out[1::2] = np.clip(mid, -32767, 32767).astype(np.int16)
-        self.last_sample = int(s[-1])
+            mid[1:] = (scaled[:-1] + scaled[1:]) // 2
+        out[1::2] = np.clip(mid, -32000, 32000).astype(np.int16)
+        self.last_sample = int(scaled[-1])
         if last:
             self.last_sample = None
         return out
@@ -208,17 +219,19 @@ def live_config(owner=True):
             "Ovozni sozlash uchun esa 'set_volume' funksiyasini chaqir.\n")
     return types.LiveConnectConfig(
         response_modalities=["AUDIO"],
-        system_instruction=instruction + "\nCurrent time (" + CONFIG['timezone'] + "): " + now().isoformat(),
+        system_instruction=instruction + f"\nCurrent time ({CONFIG['timezone']}): {now().isoformat()}",
         speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=CONFIG["voice"]))),
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(automatic_activity_detection=
-            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=350,
+            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=300,
                 end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_HIGH)),
         tools=[types.Tool(function_declarations=declarations)],
         context_window_compression=types.ContextWindowCompressionConfig(
-            sliding_window=types.SlidingWindow()),
+            trigger_tokens=16000,
+            sliding_window=types.SlidingWindow(target_tokens=4000)),
     )
 
 
@@ -304,7 +317,7 @@ class CallBridge:
         self.playback_max_send_ms = 0
         self.interrupted_playback = 0
         self.memory_queue = asyncio.Queue()
-        self.input_resampler = soxr.ResampleStream(48000, 16000, 1, dtype="int16")
+        self.input_resampler = Realtime3xDownsampler()
         self.input_rate = 16000
         self.output_resampler = Realtime2xResampler()
         self.tool_tasks = set()
@@ -594,7 +607,7 @@ class CallBridge:
             async with connect_voice(CONFIG, live_config(self.is_owner)) as session:
                 self.session = session
                 self.input_rate = getattr(session, 'input_rate', 16000)
-                self.input_resampler = soxr.ResampleStream(48000, self.input_rate, 1, dtype='int16')
+                self.input_resampler = Realtime3xDownsampler()
                 if not self.is_owner:
                     self.recording = None
                 if os.name == 'posix':
