@@ -576,7 +576,7 @@ class CallBridge:
             from dotenv import dotenv_values
             key = os.environ.get('GEMINI_API_KEY') or dotenv_values(STATE.parent / '.env').get('GEMINI_API_KEY') or dotenv_values(STATE / '.env').get('GEMINI_API_KEY')
             client = genai.Client(api_key=key)
-            models_to_try = ["gemini-2.5-flash-lite", "gemini-3.1-flash-lite-preview", "gemini-2.5-flash"]
+            models_to_try = ["gemini-2.5-flash", "gemini-3.1-flash-lite-preview", "gemini-2.5-flash-lite"]
             for m in models_to_try:
                 try:
                     resp = await client.aio.models.generate_content(
