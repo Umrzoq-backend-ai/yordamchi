@@ -40,7 +40,37 @@ from .personalization import introduction, context as personal_context
 
 LOG = logging.getLogger("hermes_voice")
 FRAME_BYTES = 960  # 10 ms, 48 kHz, mono, signed 16-bit PCM
-PLAYBACK_START_BYTES = FRAME_BYTES * 12  # absorb short network and scheduling jitter
+PLAYBACK_START_BYTES = FRAME_BYTES * 4  # 40 ms initial pre-buffer (reduced from 120 ms)
+
+class Realtime2xResampler:
+    """Seamless real-time 2x upsampler from 24kHz to 48kHz int16 PCM with state continuity and clipping protection."""
+    def __init__(self):
+        self.last_sample = None
+
+    def resample_chunk(self, in_samples: np.ndarray, last: bool = False) -> np.ndarray:
+        if in_samples.size == 0:
+            return np.array([], dtype=np.int16)
+        n = in_samples.size
+        out = np.empty(n * 2, dtype=np.int16)
+        # Even positions: original samples clamped to avoid overflow
+        np.clip(in_samples, -32767, 32767, out=out[0::2])
+        # Odd positions: interpolated midpoint between adjacent samples
+        s = in_samples.astype(np.int32)
+        mid = np.empty(n, dtype=np.int32)
+        if self.last_sample is None:
+            mid[0] = s[0]
+        else:
+            mid[0] = (self.last_sample + s[0]) // 2
+        if n > 1:
+            mid[1:] = (s[:-1] + s[1:]) // 2
+        out[1::2] = np.clip(mid, -32767, 32767).astype(np.int16)
+        self.last_sample = int(s[-1])
+        if last:
+            self.last_sample = None
+        return out
+
+    def clear(self):
+        self.last_sample = None
 def build_prompt():
     voice = CONFIG.get("voice", "")
     if voice in ("Aoede", "Kore", "Leda", "Zephyr", "Callisto"):
@@ -278,7 +308,7 @@ class CallBridge:
         self.memory_queue = asyncio.Queue()
         self.input_resampler = soxr.ResampleStream(48000, 16000, 1, dtype="int16")
         self.input_rate = 16000
-        self.output_resampler = soxr.ResampleStream(24000, 48000, 1, dtype="int16")
+        self.output_resampler = Realtime2xResampler()
         self.tool_tasks = set()
         self.session = None
         self.connected = False
@@ -318,18 +348,25 @@ class CallBridge:
 
     def next_output_frame(self):
         with self.output_lock:
-            if not self.output_started and (len(self.output) >= PLAYBACK_START_BYTES or
-                                            (self.output_complete and self.output)):
-                self.output_started = True
-            if self.output_started and (len(self.output) >= FRAME_BYTES or
-                                        (self.output_complete and self.output)):
-                chunk = bytes(self.output[:FRAME_BYTES]).ljust(FRAME_BYTES, b'\0')
+            if not self.output_started:
+                if len(self.output) >= PLAYBACK_START_BYTES or (self.output_complete and self.output):
+                    self.output_started = True
+            if self.output_started and len(self.output) >= FRAME_BYTES:
+                chunk = bytes(self.output[:FRAME_BYTES])
                 del self.output[:FRAME_BYTES]
+                self.frames_out += 1
+            elif self.output_started and self.output_complete and self.output:
+                chunk = bytes(self.output).ljust(FRAME_BYTES, b'\0')
+                self.output.clear()
                 self.frames_out += 1
             else:
                 if self.output_started and not self.output_complete:
                     self.output_underruns += 1
-                self.output_started = False
+                    # Resume smoothly as soon as 2 frames arrive, avoid 120ms stutter
+                    if len(self.output) < FRAME_BYTES * 2:
+                        self.output_started = False
+                else:
+                    self.output_started = False
                 chunk = bytes(FRAME_BYTES)
             if self.output_complete and not self.output:
                 self.output_started = False

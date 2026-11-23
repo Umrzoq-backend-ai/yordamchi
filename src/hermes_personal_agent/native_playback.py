@@ -33,6 +33,11 @@ class NativePlayback:
         deadline = time.monotonic()
         last_write = None
         try:
+            # Pre-buffer 2 frames (20 ms) of silence to absorb OS thread scheduling jitter
+            try:
+                os.write(self.fd, bytes(960 * 2))
+            except Exception:
+                pass
             while not self.stop.is_set():
                 if not select.select([], [self.fd], [], 0.05)[1]:
                     continue
