@@ -408,7 +408,14 @@ class TelegramAgent:
                 if not result["ok"]:
                     raise RuntimeError("Call not accepted")
                 if self.service.call_task:
-                    await asyncio.shield(self.service.call_task)
+                    try:
+                        await asyncio.shield(self.service.call_task)
+                    except Exception as call_exc:
+                        exc_name = type(call_exc).__name__
+                        if exc_name in ('ConnectionClosedError', 'ConnectionClosedOK', 'ConnectionClosed', 'CancelledError'):
+                            LOG.info("Scheduled call finished: %s", exc_name)
+                        else:
+                            raise
             elif job["kind"] == "message":
                 await self.notify(job["text"])
             else:

@@ -77,6 +77,12 @@ def open_app(app_name: str) -> Dict[str, Any]:
 
     # 1. High-priority explicit alias mappings
     explicit_aliases = {
+        "youtube": "https://www.youtube.com",
+        "youtub": "https://www.youtube.com",
+        "yutub": "https://www.youtube.com",
+        "google": "https://www.google.com",
+        "gmail": "https://mail.google.com",
+        "yandex": "https://yandex.com",
         "kamera": "cheese",
         "camera": "cheese",
         "vebkamera": "cheese",
@@ -112,6 +118,9 @@ def open_app(app_name: str) -> Dict[str, Any]:
 
     target = explicit_aliases.get(app_lower) or explicit_aliases.get(stem)
     if target:
+        if target.startswith("http://") or target.startswith("https://"):
+            subprocess.Popen(["xdg-open", target], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return {"ok": True, "message": f"'{app_name}' ochildi: {target}"}
         bin_path = shutil.which(target)
         if bin_path:
             subprocess.Popen([bin_path], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -159,6 +168,12 @@ def open_app(app_name: str) -> Dict[str, Any]:
 
     # 4. Web service fallback
     web_services = {
+        "youtube": "https://www.youtube.com",
+        "youtub": "https://www.youtube.com",
+        "yutub": "https://www.youtube.com",
+        "google": "https://www.google.com",
+        "gmail": "https://mail.google.com",
+        "yandex": "https://yandex.com",
         "instagram": "https://www.instagram.com",
         "tiktok": "https://www.tiktok.com",
         "chatgpt": "https://chatgpt.com",

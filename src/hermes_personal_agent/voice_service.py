@@ -129,7 +129,7 @@ def live_config(owner=True):
         types.FunctionDeclaration(
             name="open_app",
             behavior="NON_BLOCKING",
-            description="Kompyuterda ilovalarni ochish (Kamera, Instagram, VS Code, Chrome, Telegram, Terminal va boshqalar).",
+            description="Kompyuterda ilovalarni yoki saytlarni ochish (YouTube, Kamera, Instagram, VS Code, Chrome, Telegram, Terminal va boshqalar).",
             parameters_json_schema={
                 "type": "object",
                 "properties": {
@@ -509,7 +509,11 @@ class CallBridge:
             return
         if not self.is_owner:
             return
-        result = await run_task((call.args or {}).get("task", ""),source_trust="assistant")
+        try:
+            result = await run_task((call.args or {}).get("task", ""), source_trust="assistant")
+        except Exception as task_err:
+            LOG.error("Hermes task execution error: %s", task_err)
+            result = {"ok": False, "error": f"Topshiriqni bajarishda xatolik: {type(task_err).__name__}"}
         if self.stopped.is_set():
             return
         await self.session.send_tool_response(function_responses=[types.FunctionResponse(
@@ -635,7 +639,12 @@ class CallBridge:
                                              return_when=asyncio.FIRST_COMPLETED)
                 for task in done:
                     if not task.cancelled() and task.exception():
-                        raise task.exception()
+                        exc = task.exception()
+                        exc_name = type(exc).__name__
+                        if self.ever_connected and exc_name in ('ConnectionClosedError', 'ConnectionClosedOK', 'ConnectionClosed', 'CancelledError'):
+                            LOG.info("Call session closed normally: %s", exc_name)
+                        else:
+                            raise exc
         finally:
             self.stopped.set()
             self.connected = False
@@ -794,8 +803,13 @@ class Service:
 
     def call_finished(self, task, bridge=None):
         if not task.cancelled() and task.exception():
+            exc = task.exception()
+            exc_name = type(exc).__name__
+            if bridge and getattr(bridge, 'ever_connected', False) and exc_name in ('ConnectionClosedError', 'ConnectionClosedOK', 'ConnectionClosed', 'CancelledError'):
+                LOG.info("Call finished with normal disconnection: %s", exc_name)
+                return
             # Exception text can contain URLs or credentials; show only its class.
-            self.last_error = type(task.exception()).__name__
+            self.last_error = exc_name
             LOG.error("Call failed: %s", self.last_error)
         # Begona qo'ng'iroqlar olinmaydi, audio yozuv va xatolar egasining chatiga tashlanmaydi.
 
