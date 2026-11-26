@@ -32,7 +32,7 @@ UPLOAD_TYPES = {
     '.sql', '.sh', '.c', '.cpp', '.h', '.hpp', '.html', '.htm', '.rst'
 }
 
-def create_app(token=None, port=8787, task_runner=None, knowledge=None):
+def create_app(token=None, port=8787, host='127.0.0.1', task_runner=None, knowledge=None):
     from .setup_wizard import SetupWizard
     wizard=SetupWizard()
     token_file = STATE / "control-token"
@@ -51,14 +51,28 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         return await run_task(text, session_key=session_key+':'+CONFIG.get('hermes_provider','openai-codex'), image=image)
     runner = task_runner or task
 
+    def is_allowed_host(h):
+        if h in hosts: return True
+        if host in ('0.0.0.0', '::'):
+            h_clean = h.split(':')[0]
+            if h_clean.startswith(('192.168.', '10.', '172.16.', '172.17.', '172.18.', '172.19.',
+                                   '172.20.', '172.21.', '172.22.', '172.23.', '172.24.',
+                                   '172.25.', '172.26.', '172.27.', '172.28.', '172.29.',
+                                   '172.30.', '172.31.')) or h_clean.endswith('.local'):
+                return True
+        return False
+
     @web.middleware
     async def guard(request, handler):
         # Host check also blocks DNS rebinding against localhost.
-        if request.host not in hosts:
+        if not is_allowed_host(request.host):
             raise web.HTTPForbidden(text='Host ruxsat etilmagan')
         origin = request.headers.get('Origin')
         if origin and origin not in origins:
-            raise web.HTTPForbidden(text='Origin ruxsat etilmagan')
+            import urllib.parse
+            o_host = urllib.parse.urlparse(origin).netloc
+            if not is_allowed_host(o_host):
+                raise web.HTTPForbidden(text='Origin ruxsat etilmagan')
         if request.path.startswith('/api/'):
             supplied = request.headers.get('Authorization', '')
             cookie_tok = request.cookies.get('hpa-token', '')
@@ -350,9 +364,10 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description='Shaxsiy assistent — brauzer paneli')
     parser.add_argument('--port',type=int,default=8787); parser.add_argument('--no-browser',action='store_true')
     parser.add_argument('--setup',action='store_true',help='O‘zbekcha sozlash ustasini ochish')
+    parser.add_argument('--host',type=str,default='127.0.0.1',help='Tinglash IP manzili (0.0.0.0 qilib mahalliy tarmoqqa ochish mumkin)')
     args=parser.parse_args(argv)
     if not 1024<=args.port<=65535: parser.error('Port 1024–65535 oralig‘ida bo‘lsin')
-    app=create_app(port=args.port)
+    app=create_app(port=args.port, host=args.host)
     async def started(application):
         query='?setup=1' if args.setup else ''
         url=f'http://127.0.0.1:{args.port}/{query}#token={application[TOKEN_KEY]}'
@@ -367,4 +382,4 @@ def main(argv=None):
         application[OPEN_TASK_KEY].cancel()
         with contextlib.suppress(asyncio.CancelledError): await application[OPEN_TASK_KEY]
     app.on_startup.append(schedule); app.on_cleanup.append(cleanup)
-    web.run_app(app,host='127.0.0.1',port=args.port,access_log=None,print=None)
+    web.run_app(app,host=args.host,port=args.port,access_log=None,print=None)
