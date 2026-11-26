@@ -176,7 +176,10 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 14px/1.6 Interface, system-ui, -apple-system, sans-serif;
+  font: 14px/1.6 Interface, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
   transition: background-color 0.2s ease, color 0.2s ease;
   min-height: 100vh;
 }
@@ -280,8 +283,8 @@ a:hover {
 .rail {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 240px;
-  padding: 24px 18px;
+  width: 248px;
+  padding: 24px 16px 20px;
   background: var(--rail-bg);
   border-right: 1px solid var(--rail-border);
   display: flex;
@@ -296,21 +299,37 @@ a:hover {
   align-items: center;
   text-decoration: none !important;
   color: var(--ink);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
   padding: 4px 6px;
+  user-select: none;
 }
 
-.brand svg {
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 34px;
-  color: var(--brand-cube) !important;
-  stroke: var(--brand-cube) !important;
-  stroke-width: 2.2 !important;
-  fill: none !important;
+  min-width: 34px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-family: Interface, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  letter-spacing: -0.02em;
+}
+
+.brand > span:not(.brand-badge) {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 .brand small {
@@ -318,39 +337,51 @@ a:hover {
   font-size: 11px;
   font-weight: 400;
   color: var(--muted);
-  letter-spacing: 0;
-  margin: 1px 0 0;
+  letter-spacing: normal;
+  margin: 3px 0 0;
 }
 
 .rail nav {
-  margin-top: 36px;
-  display: grid;
-  gap: 6px;
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .rail nav button {
   display: flex;
-  gap: 12px;
   align-items: center;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  color: var(--nav-inactive-ink);
+  gap: 12px;
+  width: 100%;
   padding: 10px 14px;
+  border-radius: 10px;
   font-size: 13.5px;
   font-weight: 500;
-  border-radius: 9px;
-  min-height: 42px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--nav-inactive-ink);
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.16s ease;
 }
 
-.rail nav button svg {
+.rail nav button .nav-icon {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rail nav button .nav-icon svg {
   width: 19px;
   height: 19px;
-  flex-shrink: 0;
   stroke-width: 1.8;
   color: currentColor;
+  fill: none !important;
 }
 
 .rail nav button:hover {
@@ -365,7 +396,7 @@ a:hover {
   box-shadow: var(--nav-active-glow);
 }
 
-.rail nav button[aria-current="page"] svg {
+.rail nav button[aria-current="page"] .nav-icon svg {
   color: var(--nav-active-ink);
 }
 
@@ -400,11 +431,12 @@ a:hover {
    WORKSPACE & TOPBAR
    ───────────────────────────────────────────────────────────── */
 .workspace {
-  margin-left: 240px;
+  margin-left: 248px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
+
 
 .topbar {
   min-height: 64px;
@@ -566,35 +598,70 @@ button svg {
 }
 
 .primary,
-#dashboard-service-start {
-  background: var(--primary);
-  color: var(--primary-ink);
-  border-color: var(--primary);
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+.quiet,
+.surface button.quiet,
+.heading button.quiet,
+#dashboard-service-start,
+#dashboard-service-stop,
+#reset,
+#inbox-sync,
+#refresh-sources,
+#jobs-refresh,
+#motion,
+.inbox-message button,
+form button[type="submit"] {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25) !important;
+  transition: all 0.16s ease !important;
 }
 
 .primary:hover,
-#dashboard-service-start:hover {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
-  box-shadow: 0 4px 12px var(--primary-glow);
-}
-
-.quiet,
-.surface button.quiet,
-.heading button.quiet {
-  background: var(--btn-secondary-bg);
-  border: 1px solid var(--btn-secondary-border);
-  color: var(--btn-secondary-ink);
-  font-weight: 500;
-}
-
 .quiet:hover,
 .surface button.quiet:hover,
-.heading button.quiet:hover {
-  background: var(--btn-secondary-hover-bg);
-  border-color: var(--btn-secondary-hover-border);
+.heading button.quiet:hover,
+#dashboard-service-start:hover,
+#dashboard-service-stop:hover,
+#reset:hover,
+#inbox-sync:hover,
+#refresh-sources:hover,
+#jobs-refresh:hover,
+#motion:hover,
+.inbox-message button:hover,
+form button[type="submit"]:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.35) !important;
+}
+
+/* Calendar month navigation arrows - prominent blue buttons */
+#month-prev,
+#month-next {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+}
+
+#month-prev:hover,
+#month-next:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
 }
 
 .button-row {
@@ -1284,4 +1351,26 @@ footer {
     flex-direction: column;
     gap: 12px;
   }
+}
+
+/* Siz bilan birga - Orb Area refinement */
+html[data-theme="light"] .orb-wrap {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border: 1px solid #bfdbfe !important;
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.12) !important;
+}
+
+html[data-theme="light"] #orb-label {
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="light"] #orb-status {
+  color: #2563eb !important;
+  font-weight: 600 !important;
+}
+
+html[data-theme="dark"] .orb-wrap {
+  background: #091224 !important;
+  border: 1px solid #1e293b !important;
 }
