@@ -52,18 +52,18 @@ html[data-theme="dark"] {
   --nav-active-ink: #ffffff;
   --nav-active-glow: 0 4px 14px rgba(37, 99, 235, 0.4);
   
-  --topbar-bg: #091122;
-  --topbar-border: #172338;
+  --topbar-bg: #070d1a;
+  --topbar-border: transparent;
   --topbar-ink: #94a3b8;
   
-  --btn-secondary-bg: #111c34;
-  --btn-secondary-border: #233452;
+  --btn-secondary-bg: #0e172a;
+  --btn-secondary-border: #1e293b;
   --btn-secondary-ink: #ffffff;
   --btn-secondary-hover-bg: #182748;
   --btn-secondary-hover-border: #3b5278;
   
-  --theme-switch-bg: #091224;
-  --theme-switch-border: #1f304d;
+  --theme-switch-bg: #0e182a;
+  --theme-switch-border: #1e293b;
   --theme-btn-active-bg: #2563eb;
   --theme-btn-active-ink: #ffffff;
   --theme-btn-inactive-ink: #94a3b8;
@@ -126,8 +126,8 @@ html[data-theme="light"] {
   --nav-active-ink: #2563eb;
   --nav-active-glow: 0 2px 8px rgba(37, 99, 235, 0.15);
   
-  --topbar-bg: #ffffff;
-  --topbar-border: #e2e8f0;
+  --topbar-bg: #f4f7fb;
+  --topbar-border: transparent;
   --topbar-ink: #64748b;
   
   --btn-secondary-bg: #ffffff;
@@ -136,11 +136,11 @@ html[data-theme="light"] {
   --btn-secondary-hover-bg: #f8fafc;
   --btn-secondary-hover-border: #cbd5e1;
   
-  --theme-switch-bg: #f1f5f9;
-  --theme-switch-border: #e2e8f0;
+  --theme-switch-bg: #e8edf5;
+  --theme-switch-border: #dbe2ee;
   --theme-btn-active-bg: #2563eb;
   --theme-btn-active-ink: #ffffff;
-  --theme-btn-inactive-ink: #64748b;
+  --theme-btn-inactive-ink: #475569;
   --theme-btn-inactive-hover: #0f172a;
   
   --strip-bg: transparent;
@@ -179,6 +179,14 @@ body {
   font: 14px/1.6 Interface, system-ui, -apple-system, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
   min-height: 100vh;
+}
+
+svg {
+  fill: none !important;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 h1, .welcome h2, .brand {
@@ -297,9 +305,12 @@ a:hover {
 .brand svg {
   width: 34px;
   height: 34px;
-  color: var(--brand-cube);
+  color: var(--brand-cube) !important;
+  stroke: var(--brand-cube) !important;
+  stroke-width: 2.2 !important;
+  fill: none !important;
   flex-shrink: 0;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .brand small {
@@ -449,8 +460,8 @@ a:hover {
   background: var(--theme-switch-bg);
   border: 1px solid var(--theme-switch-border);
   border-radius: 9999px;
-  padding: 3px;
-  gap: 2px;
+  padding: 3px 4px;
+  gap: 3px;
 }
 
 .theme-btn {
@@ -460,28 +471,35 @@ a:hover {
   border: 0;
   background: transparent;
   color: var(--theme-btn-inactive-ink);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
-  padding: 5px 12px;
+  padding: 5px 14px;
   min-height: 28px;
   border-radius: 9999px;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all 0.18s ease;
   user-select: none;
 }
 
 .theme-btn .theme-icon {
   width: 14px;
   height: 14px;
-  stroke-width: 2;
+  stroke-width: 2 !important;
+  stroke: currentColor !important;
+  fill: none !important;
   vertical-align: middle;
 }
 
 .theme-btn.active {
-  background: var(--theme-btn-active-bg);
-  color: var(--theme-btn-active-ink);
+  background: var(--primary) !important;
+  color: #ffffff !important;
   font-weight: 600;
-  box-shadow: 0 1px 5px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 1px 6px rgba(37, 99, 235, 0.35);
+}
+
+.theme-btn.active .theme-icon {
+  stroke: #ffffff !important;
+  fill: none !important;
 }
 
 .theme-btn:not(.active):hover {
