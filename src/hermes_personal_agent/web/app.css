@@ -1,3 +1,21 @@
+/* Accessibility Skip Link (off-screen until focused) */
+.skip {
+  position: absolute;
+  top: -200px;
+  left: 10px;
+  z-index: 9999;
+  background: var(--primary);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: top 0.2s ease;
+}
+.skip:focus {
+  top: 10px;
+}
+
 /* ============================================================
    YORDAMCHI AI — DESIGN SYSTEM & DUAL THEME ENGINE (KUN / TUN)
    Engineered to match UI Design Specs with 100% precision.
@@ -1283,9 +1301,11 @@ footer {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   RESPONSIVE
+   RESPONSIVE DESIGN (Desktop, Tablet & Mobile)
    ───────────────────────────────────────────────────────────── */
-@media (max-width: 940px) {
+
+/* Tablet (769px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
   .rail {
     width: 76px;
     padding: 20px 10px;
@@ -1294,69 +1314,238 @@ footer {
   .rail-bottom {
     display: none;
   }
-  .brand svg {
-    width: 32px;
-  }
   .rail nav button {
     font-size: 0;
     padding: 12px;
     justify-content: center;
   }
-  .rail nav button svg {
-    width: 22px;
-    height: 22px;
+  .rail nav button .nav-icon {
+    margin: 0 !important;
   }
   .workspace {
     margin-left: 76px;
   }
-  .topbar {
-    padding: 12px 20px;
-  }
-  main {
-    padding: 24px 20px;
-  }
-  .two-col {
-    grid-template-columns: 1fr;
-  }
-  .command-layout {
+  .two-col, .command-layout {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 640px) {
+/* Mobile Devices (<= 768px) - Pixel-perfect native app experience */
+@media (max-width: 768px) {
+  /* Slim Top Header */
   .rail {
     position: relative;
     width: 100%;
-    padding: 14px 16px;
+    padding: 10px 16px;
+    height: 56px;
+    background: var(--rail-bg);
     border-right: 0;
     border-bottom: 1px solid var(--rail-border);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 50;
   }
-  .brand > span {
-    display: block;
-  }
-  .rail nav {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    margin-top: 14px;
-  }
-  .rail nav button {
-    font-size: 11px;
-    flex-direction: column;
-    padding: 8px 4px;
-    gap: 4px;
-    min-height: 48px;
-  }
-  .workspace {
-    margin-left: 0;
-  }
-  .topbar {
-    padding: 10px 16px;
-    flex-wrap: wrap;
+  .brand {
+    padding: 0 !important;
     gap: 10px;
   }
-  .dashboard-strip {
+  .brand-badge {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 18px;
+    border-radius: 8px;
+  }
+  .brand > span:not(.brand-badge) {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+  .brand small {
+    font-size: 10px;
+  }
+  .rail-bottom {
+    display: none !important;
+  }
+
+  /* Fixed Mobile Bottom Navigation Bar (Dock / Tab Bar) */
+  .rail nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+    background: var(--rail-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--rail-border);
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    margin: 0 !important;
+  }
+  .rail nav button {
+    flex: 1;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    justify-content: center !important;
+    padding: 4px 2px !important;
+    min-height: 48px;
+    border-radius: 10px;
+    background: transparent !important;
+    gap: 3px;
+    text-align: center;
+    color: var(--muted) !important;
+  }
+  .rail nav button .nav-icon {
+    width: 20px;
+    height: 20px;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rail nav button .nav-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  .rail nav button .nav-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 52px;
+  }
+  .rail nav button .nav-label[data-mobile]:before {
+    content: attr(data-mobile);
+  }
+  .rail nav button .nav-label[data-mobile] {
+    font-size: 0 !important;
+  }
+  .rail nav button .nav-label[data-mobile]:before {
+    font-size: 9.5px !important;
+  }
+  .rail nav button[aria-current="page"] {
+    color: var(--primary) !important;
+  }
+  .rail nav button[aria-current="page"] .nav-icon svg {
+    stroke: var(--primary) !important;
+    filter: drop-shadow(0 2px 6px rgba(37, 99, 235, 0.45));
+  }
+
+  /* Workspace & Padding */
+  .workspace {
+    margin-left: 0 !important;
+    padding-bottom: 84px !important;
+  }
+  .topbar {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #breadcrumb {
+    display: none !important;
+  }
+  .topbar-right {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  #connection {
+    font-size: 12px;
+  }
+  .theme-switch {
+    padding: 2px;
+    gap: 2px;
+  }
+  .theme-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-height: 28px;
+  }
+  .theme-btn .theme-icon {
+    width: 14px;
+    height: 14px;
+  }
+  #clock {
+    font-size: 12px;
+  }
+
+  /* Page Content & Cards */
+  main {
+    padding: 16px 14px !important;
+  }
+  main h1, .page-title {
+    font-size: 22px !important;
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+  main h1 + p, .page-subtitle {
+    font-size: 13px !important;
+    margin-bottom: 16px !important;
+  }
+  .card {
+    border-radius: 14px !important;
+    padding: 16px !important;
+    margin-bottom: 14px;
+  }
+  .card h2, .card h3 {
+    font-size: 16px !important;
+    margin-bottom: 12px;
+  }
+  .two-col, .command-layout {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .dashboard-strip {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  /* Form Elements (16px font prevents iOS zoom) */
+  input[type="text"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+  }
+  button[type="submit"].primary,
+  .composer button.primary {
+    min-height: 44px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Chat Composer Actions on Mobile */
+  .composer {
+    padding: 12px 14px;
+  }
+  .composer-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .composer-actions > div {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
 

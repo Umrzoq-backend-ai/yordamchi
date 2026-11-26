@@ -226,8 +226,8 @@ def live_config(owner=True):
         input_audio_transcription=types.AudioTranscriptionConfig(),
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(automatic_activity_detection=
-            types.AutomaticActivityDetection(prefix_padding_ms=100, silence_duration_ms=300,
-                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_HIGH)),
+            types.AutomaticActivityDetection(prefix_padding_ms=150, silence_duration_ms=600,
+                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_BALANCED)),
         tools=[types.Tool(function_declarations=declarations)],
         context_window_compression=types.ContextWindowCompressionConfig(
             trigger_tokens=16000,
@@ -303,7 +303,7 @@ class CallBridge:
         self.relay = relay
         self.relayed_messages = set()
         self.stopped = asyncio.Event()
-        self.input = asyncio.Queue(maxsize=100)
+        self.input = asyncio.Queue(maxsize=1000)
         self.output = bytearray()
         self.output_lock = threading.Lock()
         self.native_playback = None
@@ -352,7 +352,14 @@ class CallBridge:
     async def send_input(self):
         while True:
             pcm = await self.input.get()
-            converted = self.input_resampler.resample_chunk(np.frombuffer(pcm, dtype="<i2"))
+            chunks = [pcm]
+            while not self.input.empty() and len(chunks) < 15:
+                try:
+                    chunks.append(self.input.get_nowait())
+                except asyncio.QueueEmpty:
+                    break
+            combined = b"".join(chunks)
+            converted = self.input_resampler.resample_chunk(np.frombuffer(combined, dtype="<i2"))
             if converted.size:
                 await self.session.send_realtime_input(audio=types.Blob(
                     data=converted.astype("<i2").tobytes(), mime_type=f"audio/pcm;rate={self.input_rate}"))
@@ -643,6 +650,8 @@ class CallBridge:
                         exc_name = type(exc).__name__
                         if self.ever_connected and exc_name in ('ConnectionClosedError', 'ConnectionClosedOK', 'ConnectionClosed', 'CancelledError'):
                             LOG.info("Call session closed normally: %s", exc_name)
+                        elif exc_name == 'APIError':
+                            LOG.warning("Gemini Live API error during call: %s", exc)
                         else:
                             raise exc
         finally:
