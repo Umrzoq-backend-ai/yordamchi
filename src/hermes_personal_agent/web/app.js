@@ -34,13 +34,45 @@ if(tokenFromURL){sessionStorage.setItem('hpa-token',tokenFromURL);localStorage.s
 const cookieMatch=document.cookie.match(/(?:^|; )hpa-token=([^;]+)/);
 const token=sessionStorage.getItem('hpa-token')||localStorage.getItem('hpa-token')||(cookieMatch?decodeURIComponent(cookieMatch[1]):'')||'';
 if(token){sessionStorage.setItem('hpa-token',token);localStorage.setItem('hpa-token',token)}
-let busy=false,initialized=false,voiceActive=false,currentTab='chat',snapshot=null,recognition=null;
+let busy=false,initialized=false,voiceActive=false,currentTab='dashboard',snapshot=null,recognition=null;
 const welcomeTemplate=$('#welcome').cloneNode(true);
 function notice(message,error=false){const n=$('#notice');n.textContent=message;n.classList.toggle('error',error);n.hidden=false}
 async function api(path,body){const response=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:{Authorization:'Bearer '+token,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:body instanceof FormData?body:JSON.stringify(body)});let result;try{result=await response.json()}catch{throw Error(response.status===413?'Fayl juda katta. 10 MB gacha fayl tanlang.':'Server javob bermadi. Panelni qayta oching.')}if(!response.ok)throw Error(result.error||'Amal bajarilmadi.');return result}
 function tab(name){currentTab=name;for(const section of document.querySelectorAll('.view'))section.hidden=section.id!=='view-'+name;for(const button of document.querySelectorAll('[data-tab]')){if(button.dataset.tab===name)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}$('#breadcrumb').textContent='Ish maydoni / '+({dashboard:'Bosh sahifa',calendar:'Kalendar',chat:'Suhbat',memory:'Bilimlarim',profile:'Menga moslashtirish',setup:'Sozlash ustasi'}[name]);if(name==='memory')loadSources();}
 document.querySelectorAll('[data-tab],[data-go]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab||b.dataset.go)));
-document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();tab('chat')});
+function applyTheme(theme) {
+  const isLight = theme === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+  try {
+    localStorage.setItem('yordamchi_theme', isLight ? 'light' : 'dark');
+  } catch (e) {}
+  const lightBtn = document.getElementById('theme-light');
+  const darkBtn = document.getElementById('theme-dark');
+  if (lightBtn && darkBtn) {
+    lightBtn.classList.toggle('active', isLight);
+    lightBtn.setAttribute('aria-pressed', String(isLight));
+    darkBtn.classList.toggle('active', !isLight);
+    darkBtn.setAttribute('aria-pressed', String(!isLight));
+  }
+}
+
+function initTheme() {
+  let saved = 'dark';
+  try {
+    const stored = localStorage.getItem('yordamchi_theme');
+    if (stored === 'light' || stored === 'dark') {
+      saved = stored;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      saved = 'light';
+    }
+  } catch (e) {}
+  applyTheme(saved);
+  document.getElementById('theme-light')?.addEventListener('click', () => applyTheme('light'));
+  document.getElementById('theme-dark')?.addEventListener('click', () => applyTheme('dark'));
+}
+initTheme();
+
+document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();tab('dashboard')});
 async function refresh(){try{snapshot=await api('status');$('#connection').textContent='Panel ulangan';$('#source-count').textContent=snapshot.memory.sources;$('#fact-count').textContent=snapshot.memory.facts;$('#ai-status').textContent=snapshot.hermes_installed?'Hermes topildi':'Sozlash kerak';const tg=snapshot.service.phase==='setup'?'Sozlanmoqda':snapshot.service.ready?'Ishlayapti':snapshot.service.running?'Boshlanmoqda':'To‘xtagan';$('#tg-status').textContent=tg;$('#greeting').textContent=(snapshot.profile.owner_name&&snapshot.profile.owner_name!=='Owner'?snapshot.profile.owner_name+', ':'')+'sizning rejalaringiz. Sizning bilimlaringiz. Sizning yordamchingiz.';if(!initialized){for(const [key,value]of Object.entries(snapshot.profile)){const input=$('#profile-form').elements.namedItem(key);if(input)input.value=value}initialized=true;if(!snapshot.hermes_installed)notice('Boshlash uchun profilingiz va bilimlaringizni qo‘shing. AI va Telegramni ulash: Sozlash ustasi.')}updateClock()}catch(error){$('#connection').textContent='Ulanish uzildi';notice(error.message,true)}}
 function updateClock(){try{$('#clock').textContent=new Intl.DateTimeFormat('uz',{hour:'2-digit',minute:'2-digit',timeZone:snapshot?.profile.timezone||'Asia/Tashkent'}).format(new Date())}catch{$('#clock').textContent=''}}
 function appendMessage(role,text){$('#welcome')?.remove();const item=document.createElement('div');item.className='message '+role;const who=document.createElement('span');who.className='who';who.textContent=role==='user'?'Siz':'Yordamchi';const content=document.createElement('div');content.textContent=text;item.append(who,content);$('#messages').append(item);$('#messages').scrollTop=$('#messages').scrollHeight;return item}
