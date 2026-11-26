@@ -227,7 +227,7 @@ def live_config(owner=True):
         output_audio_transcription=types.AudioTranscriptionConfig(),
         realtime_input_config=types.RealtimeInputConfig(automatic_activity_detection=
             types.AutomaticActivityDetection(prefix_padding_ms=150, silence_duration_ms=600,
-                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_BALANCED)),
+                end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW)),
         tools=[types.Tool(function_declarations=declarations)],
         context_window_compression=types.ContextWindowCompressionConfig(
             trigger_tokens=16000,
@@ -819,7 +819,7 @@ class Service:
                 return
             # Exception text can contain URLs or credentials; show only its class.
             self.last_error = exc_name
-            LOG.error("Call failed: %s", self.last_error)
+            LOG.error("Call failed: %s", self.last_error, exc_info=exc)
         # Begona qo'ng'iroqlar olinmaydi, audio yozuv va xatolar egasining chatiga tashlanmaydi.
 
     async def report_contact_call(self, task, bridge):
