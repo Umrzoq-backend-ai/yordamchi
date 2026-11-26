@@ -1,0 +1,31 @@
+{
+  "name": "Yordamchi — shaxsiy AI markazingiz",
+  "short_name": "Yordamchi",
+  "description": "Bitta installer. O‘zbekcha sozlash ustasi. Real-time Gemini ovozli qo‘ng‘iroqlar & Desktop boshqaruvi.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070d1a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/assets/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

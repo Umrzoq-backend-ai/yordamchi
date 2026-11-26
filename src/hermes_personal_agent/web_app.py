@@ -90,9 +90,29 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
         resp = web.FileResponse(ASSETS / 'index.html')
         resp.set_cookie('hpa-token', token, path='/', samesite='Strict')
         return resp
+    ALLOWED_ASSETS = {
+        'app.css', 'app.js', 'dashboard.js', 'wizard.js', 'display.ttf',
+        'favicon.svg', 'favicon-32.png', 'favicon.png', 'favicon.ico',
+        'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'manifest.json'
+    }
     async def asset(request):
-        if request.match_info['name'] not in {'app.css','app.js','dashboard.js','wizard.js','display.ttf'}: raise web.HTTPNotFound()
-        return web.FileResponse(ASSETS/request.match_info['name'])
+        name = request.match_info['name']
+        if name not in ALLOWED_ASSETS: raise web.HTTPNotFound()
+        headers = {}
+        if name.endswith('.json'): headers['Content-Type'] = 'application/manifest+json'
+        elif name.endswith('.svg'): headers['Content-Type'] = 'image/svg+xml'
+        return web.FileResponse(ASSETS / name, headers=headers)
+
+    async def favicon(request):
+        for candidate in ('favicon.ico', 'favicon-32.png', 'favicon.png', 'favicon.svg'):
+            p = ASSETS / candidate
+            if p.exists(): return web.FileResponse(p)
+        raise web.HTTPNotFound()
+
+    async def manifest(request):
+        mf = ASSETS / 'manifest.json'
+        if mf.exists(): return web.FileResponse(mf, headers={'Content-Type': 'application/manifest+json'})
+        raise web.HTTPNotFound()
     async def status(request):
         from .desktop_rpc import runtime
         state = await asyncio.to_thread(runtime)
@@ -318,7 +338,7 @@ def create_app(token=None, port=8787, task_runner=None, knowledge=None):
 
     app.cleanup_ctx.append(wizard_lifetime)
 
-    app.add_routes([web.get('/',index),web.get('/assets/{name}',asset),web.get('/api/status',status),
+    app.add_routes([web.get('/',index),web.get('/assets/{name}',asset),web.get('/favicon.ico',favicon),web.get('/manifest.json',manifest),web.get('/api/status',status),
         web.post('/api/profile',profile),web.get('/api/sources',sources),web.get('/api/search',search),
         web.post('/api/note',note),web.post('/api/upload',upload),web.post('/api/forget',forget),
         web.post('/api/chat',chat),web.post('/api/reset',reset),web.post('/api/learning',learn),
